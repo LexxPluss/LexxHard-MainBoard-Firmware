@@ -119,7 +119,7 @@ public:
                 k_msgq_purge(&msgq_towing_unit_status);
             }
 
-            k_msleep(200);
+            k_msleep(5);
         }
     }
     void cmd_v12_on(const shell *shell) {
