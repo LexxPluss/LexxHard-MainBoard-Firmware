@@ -1,4 +1,4 @@
-# Copyright (c) 2022, LexxPluss Inc.
+# Copyright (c) 2024, LexxPluss Inc.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -21,26 +21,11 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-/.idea/
-/.west/
-/bootloader/
-/build/
-/build-mcuboot/
-/modules/
-/ros_msgs/
-/tools/
-/zephyr/
-/compile_commands.json
-/out
-._.vscode
-._.west
-._bootloader
-._build
-._modules
-._ros_msgs
-._tools
-._zephyr
-docker_start.sh
-start.sh
-.vscode/._settings.json
-.vscode/settings.json
+version: '3'
+services:
+  zephyrbuilder:
+    image: zephyrprojectrtos/zephyr-build:v0.21.0
+    volumes:
+      - .:/workdir
+    environment:
+      ZEPHYR_TOOLCHAIN_VARIANT: "gnuarmemb"
