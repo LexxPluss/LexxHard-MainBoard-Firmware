@@ -34,6 +34,21 @@
 #include "misc_controller.hpp"
 #include "can_controller.hpp"
 
+
+#define QUOTE(name) #name
+#define STR(macro) QUOTE(macro)
+
+#ifndef VERSION
+#  define VERSION v2.0.0-dev  // This version must not be used for production. Only for local build.
+#endif  // VERSION
+
+#ifdef ENABLE_TUG
+#  define VERSION_STR STR(VERSION) "-tug"
+#else
+#  define VERSION_STR STR(VERSION)
+#endif  // ENABLE_TUG
+
+
 namespace lexxhard::can_controller {
 
 LOG_MODULE_REGISTER(can);
@@ -380,7 +395,7 @@ private:
     
     // Version Definition
     // [Hardware Change].[function added or interface change].[bug fix, reset to 0 when the compatibility is lost]
-    static constexpr char version[]{"2.9.0"};
+    static constexpr char version[]{VERSION_STR};
 } impl;
 
 int bmu_info(const shell *shell, size_t argc, char **argv)
