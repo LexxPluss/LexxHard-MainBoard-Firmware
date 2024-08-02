@@ -11,43 +11,39 @@
 $ mkdir -p $HOME/zephyrproject/
 $ cd $HOME/zephyrproject/
 $ git clone https://github.com/LexxPluss/LexxHard-MainBoard-Firmware
-$ docker pull zephyrprojectrtos/zephyr-build:v0.21.0
-$ docker run -it -v $HOME/zephyrproject:/workdir docker.io/zephyrprojectrtos/zephyr-build:v0.21.0
-
 ```
 ## Setup Zephyr
 
 ```bash
 $ export ZEPHYR_BASE=/workdir/LexxHard-MainBoard-Firmware/zephyr
 $ cd /workdir/LexxHard-MainBoard-Firmware
-$ west init -l lexxpluss_apps
-$ west update
-$ west config --global zephyr.base-prefer configfile
-$ west zephyr-export
+$ make setup
 ```
 ## Build
 ### Build bootloader (MCUboot)
 
 ```bash
-$ ZEPHYR_TOOLCHAIN_VARIANT=gnuarmemb west build -b lexxpluss_mb02 bootloader/mcuboot/boot/zephyr -d build-mcuboot
+$ make bootloader
 ```
 ### Build firmware
 
 ```bash
-$ ZEPHYR_TOOLCHAIN_VARIANT=gnuarmemb west build -b lexxpluss_mb02 lexxpluss_apps
+$ make firmware
 ```
 ```bash
-$ cp ./build/zephyr/zephyr.signed.confirmed.bin LexxHard-MainBoard-Firmware-Update-?.?.?.bin
-
-$ dd if=/dev/zero bs=1k count=256 | tr "\000" "\377" > bl_with_ff.bin
-$ dd if=build-mcuboot/zephyr/zephyr.bin of=bl_with_ff.bin conv=notrunc
-$ cat bl_with_ff.bin build/zephyr/zephyr.signed.bin >  LexxHard-MainBoard-Firmware-Initial-?.?.?.bin
+$ make firmware_initial
 ```
 
 ### Build firmware ( enable interlock )
 
 ```bash
-$ ZEPHYR_TOOLCHAIN_VARIANT=gnuarmemb west build -b lexxpluss_mb02 lexxpluss_apps -- -DENABLE_INTERLOCK=1
+$ make firmware_interlock
+```
+
+### Build firmware ( enable tug )
+
+```bash
+$ make firmware_tug
 ```
 
 ---
@@ -109,18 +105,35 @@ $ west build -p auto -b lexxpluss_mb02 lexxpluss_apps
 ```bash
 $ west build -p auto -b lexxpluss_mb02 lexxpluss_apps -- -DENABLE_INTERLOCK=1
 ```
+
+### Build firmware ( enable tug )
+
+```bash
+$ west build -p auto -b lexxpluss_mb02 lexxpluss_apps -- -DENABLE_TUG=1
+```
+
 ---
 ## Program of the built firmware
 
 ### First time program
 
 Program the bootloader and signed firmware after erasing the entire Flash ROM.
+Output binaries are in following output directories.
+
+#### mac
+* <bootloader output dir>: `out`
+* <firmware output dir>: `out`
+
+
+#### linux
+* <bootloader output dir>: `build-mcuboot/zephyr`
+* <firmware output dir>: `build/zephyr`
 
 ```bash
 $ brew install stlink
 $ st-flash --reset --connect-under-reset erase
-$ st-flash --reset --connect-under-reset write build-mcuboot/zephyr/zephyr.bin 0x8000000
-$ st-flash --reset --connect-under-reset write build/zephyr/zephyr.signed.bin 0x8040000
+$ st-flash --reset --connect-under-reset write <bootloader output dir>/zephyr.bin 0x8000000
+$ st-flash --reset --connect-under-reset write <firmware output dir>/zephyr.signed.bin 0x8040000
 ```
 
 ### Update
@@ -128,7 +141,7 @@ $ st-flash --reset --connect-under-reset write build/zephyr/zephyr.signed.bin 0x
 Program the firmware for update to the update area.
 
 ```bash
-$ st-flash --reset --connect-under-reset write build/zephyr/zephyr.signed.confirmed.bin 0x8080000
+$ st-flash --reset --connect-under-reset write <firmware output dir>/zephyr.signed.confirmed.bin 0x8080000
 ```
 
 ## Program of the released firmware
