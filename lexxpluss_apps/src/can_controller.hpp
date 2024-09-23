@@ -55,6 +55,7 @@ struct msg_board {
     bool c_fet, d_fet, p_dsg, v5_fail, v16_fail;
     bool wheel_disable[2];
     bool charge_temperature_error;
+    bool emergency_stop;
 } __attribute__((aligned(4)));
 
 struct msg_control {

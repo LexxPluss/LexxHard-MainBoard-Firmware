@@ -353,6 +353,8 @@ private:
             board2ros.charge_heartbeat_delay = frame.data[3];
             board2ros.charge_temperature_error = frame.data[4];
         }
+
+        board2ros.emergency_stop = is_emergency();
     }
     void handler_log(zcan_frame &frame) {
         for (uint32_t i{0}; i < frame.dlc; ++i) {
