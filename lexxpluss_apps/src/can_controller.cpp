@@ -187,6 +187,7 @@ public:
     }
     void brd_emgoff() {
         ros2board.emergency_stop = false;
+        ros2board.lockdown = false;
         heartbeat_timeout = false;
     }
     void brd_info(const shell *shell) const {
@@ -369,6 +370,7 @@ private:
             if (i > 75.0f)
                 actuator_overheat = true;
         }
+        const bool should_lockdown = !get_emergency_switch() && (ros2board.lockdown || heartbeat_timeout);
         zcan_frame frame{
             .id{0x201},
             .rtr{CAN_DATAFRAME},
@@ -377,7 +379,7 @@ private:
             .data{
                 ros2board.emergency_stop,
                 ros2board.power_off,
-                !get_emergency_switch() && heartbeat_timeout,
+                should_lockdown,
                 main_overheat,
                 actuator_overheat,
                 ros2board.wheel_power_off

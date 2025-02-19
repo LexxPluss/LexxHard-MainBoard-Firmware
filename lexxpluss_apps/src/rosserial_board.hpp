@@ -52,6 +52,7 @@ public:
         nh.advertise(pub_charge_voltage);
         nh.subscribe(sub_emergency);
         nh.subscribe(sub_poweroff);
+        nh.subscribe(sub_lockdown);
         nh.subscribe(sub_lexxhard);
         nh.subscribe(sub_messenger);
         msg_fan.data = msg_fan_data;
@@ -129,6 +130,11 @@ private:
         while (k_msgq_put(&can_controller::msgq_control, &ros2board, K_NO_WAIT) != 0)
             k_msgq_purge(&can_controller::msgq_control);
     }
+    void callback_lockdown(const std_msgs::Bool &req) {
+        ros2board.lockdown = req.data;
+        while (k_msgq_put(&can_controller::msgq_control, &ros2board, K_NO_WAIT) != 0)
+            k_msgq_purge(&can_controller::msgq_control);
+    }
     void callback_lexxhard(const std_msgs::String &req) {
         if (strncmp(req.data, "wheel_", 6) == 0)
             ros2board.wheel_power_off = strcmp(req.data, "wheel_poweroff") == 0;
@@ -162,6 +168,9 @@ private:
     };
     ros::Subscriber<std_msgs::Bool, ros_board> sub_poweroff{
         "/control/request_power_off", &ros_board::callback_poweroff, this
+    };
+    ros::Subscriber<std_msgs::Bool, ros_board> sub_lockdown{
+        "/control/request_lockdown", &ros_board::callback_lockdown, this
     };
     ros::Subscriber<std_msgs::String, ros_board> sub_lexxhard{
         "/lexxhard/setup", &ros_board::callback_lexxhard, this
