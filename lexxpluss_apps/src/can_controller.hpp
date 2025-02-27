@@ -61,6 +61,12 @@ struct msg_control {
     bool emergency_stop, power_off, wheel_power_off, lockdown;
 } __attribute__((aligned(4)));
 
+// msg_diagnostics only support can msg length failure for now
+struct msg_diagnostics {
+    uint16_t cob_id;
+    uint8_t dlc;
+} __attribute__((aligned(4)));
+
 void init();
 void run(void *p1, void *p2, void *p3);
 uint32_t get_rsoc();
@@ -68,7 +74,7 @@ bool get_emergency_switch();
 bool get_bumper_switch();
 bool is_emergency();
 extern k_thread thread;
-extern k_msgq msgq_bmu, msgq_board, msgq_control;
+extern k_msgq msgq_bmu, msgq_board, msgq_control, msgq_diagnostics;
 
 }
 
