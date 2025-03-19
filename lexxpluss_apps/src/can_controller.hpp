@@ -58,7 +58,7 @@ struct msg_board {
 } __attribute__((aligned(4)));
 
 struct msg_control {
-    bool emergency_stop, power_off, wheel_power_off;
+    bool emergency_stop, power_off, wheel_power_off, lockdown;
 } __attribute__((aligned(4)));
 
 void init();
