@@ -35,6 +35,14 @@ namespace {
 
 class rosserial_hardware_zephyr {
 public:
+    struct transport_profile {
+        uint32_t time;
+        uint32_t tx_bytes;
+        uint32_t rx_bytes;
+        uint32_t drop_tx_bytes;
+        uint32_t drop_rx_bytes;
+    };
+
     void init(const char *name) {
         ring_buf_init(&ringbuf.rx, sizeof ringbuf.rbuf, ringbuf.rbuf);
         ring_buf_init(&ringbuf.tx, sizeof ringbuf.tbuf, ringbuf.tbuf);
@@ -79,17 +87,32 @@ public:
     unsigned long time() {
         return k_uptime_get_32();
     }
+    transport_profile get_transport_profile() {
+        return {
+            .time{k_uptime_get_32()},
+            .tx_bytes{tx_bytes},
+            .rx_bytes{rx_bytes},
+            .drop_tx_bytes{drop_tx_bytes},
+            .drop_rx_bytes{drop_rx_bytes}
+        };
+    }
 private:
     void uart_isr() {
         while (uart_irq_update(uart_dev) && uart_irq_is_pending(uart_dev)) {
             uint8_t buf[64];
             if (uart_irq_rx_ready(uart_dev)) {
-                if (int n{uart_fifo_read(uart_dev, buf, sizeof buf)}; n > 0)
-                    ring_buf_put(&ringbuf.rx, buf, n);
+                if (int n{uart_fifo_read(uart_dev, buf, sizeof buf)}; n > 0) {
+                    auto const m{ring_buf_put(&ringbuf.rx, buf, n)};
+                    rx_bytes += n;
+                    drop_rx_bytes += n - m;
+                }
             }
             if (uart_irq_tx_ready(uart_dev)) {
-                if (uint32_t n{ring_buf_get(&ringbuf.tx, buf, 1)}; n > 0)
-                    uart_fifo_fill(uart_dev, buf, n);
+                if (uint32_t n{ring_buf_get(&ringbuf.tx, buf, 1)}; n > 0) {
+                    auto const m{uart_fifo_fill(uart_dev, buf, n)};
+                    tx_bytes += n;
+                    drop_tx_bytes += n - m;
+                }
             }
             if (uart_irq_tx_complete(uart_dev))
                 uart_irq_tx_disable(uart_dev);
@@ -100,6 +123,10 @@ private:
         uint8_t rbuf[1024], tbuf[1024];
     } ringbuf;
     uint32_t baudrate{57600};
+    uint32_t tx_bytes{0};
+    uint32_t rx_bytes{0};
+    uint32_t drop_tx_bytes{0};
+    uint32_t drop_rx_bytes{0};
     const device* uart_dev{nullptr};
 };
 
