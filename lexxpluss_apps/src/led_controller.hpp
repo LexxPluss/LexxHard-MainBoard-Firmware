@@ -36,7 +36,7 @@ struct msg {
     msg(uint32_t pattern, uint32_t interrupt_ms) :
         pattern(pattern), interrupt_ms(interrupt_ms) {}
     msg(const char *str) {
-        if      (strcmp(str, "emergency_stop")  == 0) pattern = EMERGENCY_STOP;
+        if      (strcmp(str, "safety_pause")  == 0) pattern = EMERGENCY_STOP;
         else if (strcmp(str, "amr_mode")        == 0) pattern = AMR_MODE;
         else if (strcmp(str, "agv_mode")        == 0) pattern = AGV_MODE;
         else if (strcmp(str, "mission_pause")   == 0) pattern = MISSION_PAUSE;
