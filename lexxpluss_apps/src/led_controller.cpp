@@ -126,7 +126,7 @@ private:
         switch (message.pattern) {
         default:
         case msg::NONE:            fill(black); break;
-        case msg::EMERGENCY_STOP:  fill_strobe(emergency_stop, 10, 50, 1000); break;
+        case msg::SAFETY_PAUSE:  fill_strobe(emergency_stop, 10, 50, 1000); break;
         case msg::AMR_MODE:        fill(amr_mode); break;
         case msg::AGV_MODE:        fill(agv_mode); break;
         case msg::MISSION_PAUSE:   fill(mission_pause); break;

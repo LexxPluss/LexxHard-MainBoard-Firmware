@@ -96,7 +96,7 @@ struct msg {
     uint32_t pattern{NONE}, interrupt_ms{0}, cpm{0};
     uint8_t rgb[3]{0, 0, 0};
     static constexpr uint32_t NONE{0};
-    static constexpr uint32_t EMERGENCY_STOP{1};
+    static constexpr uint32_t SAFETY_PAUSE{1};
     static constexpr uint32_t AMR_MODE{2};
     static constexpr uint32_t AGV_MODE{3};
     static constexpr uint32_t MISSION_PAUSE{4};
