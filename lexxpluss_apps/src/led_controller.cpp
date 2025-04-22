@@ -362,10 +362,10 @@ private:
     led_rgb pixeldata[2][PIXELS], pixeldata_back[2][PIXELS_BACK];
     uint32_t counter{0};
     static constexpr uint8_t clamp_threshold{0x80};
-    static const led_rgb emergency_stop, amr_mode, agv_mode, mission_pause, path_blocked, manual_drive;
+    static const led_rgb safety_pause, amr_mode, agv_mode, mission_pause, path_blocked, manual_drive;
     static const led_rgb dock_mode, waiting_for_job, orange, sequence, move_actuator, lockdown, black;
 } impl;
-const led_rgb led_controller_impl::emergency_stop {.r{0x80}, .g{0x00}, .b{0x00}};
+const led_rgb led_controller_impl::safety_pause {.r{0x80}, .g{0x00}, .b{0x00}};
 const led_rgb led_controller_impl::amr_mode       {.r{0x00}, .g{0x80}, .b{0x80}};
 const led_rgb led_controller_impl::agv_mode       {.r{0x45}, .g{0xff}, .b{0x00}};
 const led_rgb led_controller_impl::mission_pause  {.r{0xff}, .g{0xff}, .b{0x00}};
