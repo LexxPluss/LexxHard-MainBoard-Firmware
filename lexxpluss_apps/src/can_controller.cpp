@@ -113,6 +113,10 @@ public:
                     diag2ros.dlc = frame.dlc;
                     while (k_msgq_put(&msgq_diagnostics, &diag2ros, K_NO_WAIT) != 0)
                         k_msgq_purge(&msgq_diagnostics);
+
+                   led_controller::msg message{led_controller::msg::CHARGING, 1000};
+                   while (k_msgq_put(&led_controller::msgq, &message, K_NO_WAIT) != 0)
+                       k_msgq_purge(&led_controller::msgq);
                 }
                 handled = true;
             }
@@ -125,6 +129,10 @@ public:
                     diag2ros.dlc = frame.dlc;
                     while (k_msgq_put(&msgq_diagnostics, &diag2ros, K_NO_WAIT) != 0)
                         k_msgq_purge(&msgq_diagnostics);
+
+                    led_controller::msg message{led_controller::msg::CHARGING, 1000};
+                    while (k_msgq_put(&led_controller::msgq, &message, K_NO_WAIT) != 0)
+                        k_msgq_purge(&led_controller::msgq);
                 }
                 handled = true;
             }
