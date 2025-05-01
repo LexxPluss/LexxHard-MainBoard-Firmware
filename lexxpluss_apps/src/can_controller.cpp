@@ -109,14 +109,7 @@ public:
                     while (k_msgq_put(&msgq_bmu, &bmu2ros, K_NO_WAIT) != 0)
                         k_msgq_purge(&msgq_bmu);
                 } else if(is_corrupted) {
-                    diag2ros.cob_id = frame.id;
-                    diag2ros.dlc = frame.dlc;
-                    while (k_msgq_put(&msgq_diagnostics, &diag2ros, K_NO_WAIT) != 0)
-                        k_msgq_purge(&msgq_diagnostics);
-
-                   led_controller::msg message{led_controller::msg::CHARGING, 1000};
-                   while (k_msgq_put(&led_controller::msgq, &message, K_NO_WAIT) != 0)
-                       k_msgq_purge(&led_controller::msgq);
+                    handler_corrupted_frame(frame);
                 }
                 handled = true;
             }
@@ -125,14 +118,7 @@ public:
                     while (k_msgq_put(&msgq_board, &board2ros, K_NO_WAIT) != 0)
                         k_msgq_purge(&msgq_board);
                 } else {
-                    diag2ros.cob_id = frame.id;
-                    diag2ros.dlc = frame.dlc;
-                    while (k_msgq_put(&msgq_diagnostics, &diag2ros, K_NO_WAIT) != 0)
-                        k_msgq_purge(&msgq_diagnostics);
-
-                    led_controller::msg message{led_controller::msg::CHARGING, 1000};
-                    while (k_msgq_put(&led_controller::msgq, &message, K_NO_WAIT) != 0)
-                        k_msgq_purge(&led_controller::msgq);
+                    handler_corrupted_frame(frame);
                 }
                 handled = true;
             }
@@ -457,6 +443,16 @@ private:
                 break;
             log.putc(data);
         }
+    }
+    void handler_corrupted_frame(zcan_frame &frame) {
+        diag2ros.cob_id = frame.id;
+        diag2ros.dlc = frame.dlc;
+        while (k_msgq_put(&msgq_diagnostics, &diag2ros, K_NO_WAIT) != 0)
+            k_msgq_purge(&msgq_diagnostics);
+
+        led_controller::msg message{led_controller::msg::CHARGING, 1000};
+        while (k_msgq_put(&led_controller::msgq, &message, K_NO_WAIT) != 0)
+            k_msgq_purge(&led_controller::msgq);
     }
     void send_message() const {
         bool main_overheat{board2ros.main_board_temp > 75.0f};
