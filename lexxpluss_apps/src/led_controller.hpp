@@ -36,7 +36,7 @@ struct msg {
     msg(uint32_t pattern, uint32_t interrupt_ms) :
         pattern(pattern), interrupt_ms(interrupt_ms) {}
     msg(const char *str) {
-        if      (strcmp(str, "emergency_stop")  == 0) pattern = EMERGENCY_STOP;
+        if      (strcmp(str, "safety_pause")  == 0) pattern = SAFETY_PAUSE;
         else if (strcmp(str, "amr_mode")        == 0) pattern = AMR_MODE;
         else if (strcmp(str, "agv_mode")        == 0) pattern = AGV_MODE;
         else if (strcmp(str, "mission_pause")   == 0) pattern = MISSION_PAUSE;
@@ -96,7 +96,7 @@ struct msg {
     uint32_t pattern{NONE}, interrupt_ms{0}, cpm{0};
     uint8_t rgb[3]{0, 0, 0};
     static constexpr uint32_t NONE{0};
-    static constexpr uint32_t EMERGENCY_STOP{1};
+    static constexpr uint32_t SAFETY_PAUSE{1};
     static constexpr uint32_t AMR_MODE{2};
     static constexpr uint32_t AGV_MODE{3};
     static constexpr uint32_t MISSION_PAUSE{4};
