@@ -24,8 +24,12 @@
  */
 
 #pragma once
+#include <cstdio>
 
 #include <zephyr.h>
+#include "diagnostic_msgs/DiagnosticArray.h"
+#include "diagnostic_msgs/DiagnosticStatus.h"
+#include "diagnostic_msgs/KeyValue.h"
 #include "ros/node_handle.h"
 #include "std_msgs/Bool.h"
 #include "std_msgs/Byte.h"
@@ -50,6 +54,7 @@ public:
         nh.advertise(pub_power);
         nh.advertise(pub_charge_delay);
         nh.advertise(pub_charge_voltage);
+        nh.advertise(pub_diagnostics);
         nh.subscribe(sub_emergency);
         nh.subscribe(sub_poweroff);
         nh.subscribe(sub_lockdown);
@@ -59,8 +64,24 @@ public:
         msg_fan.data_length = sizeof msg_fan_data / sizeof msg_fan_data[0];
         msg_bumper.data = msg_bumper_data;
         msg_bumper.data_length = sizeof msg_bumper_data / sizeof msg_bumper_data[0];
+
+        // diagnostics msg keys
+        diagnostics_kv[0].key = "error code";
+        diagnostics_kv[1].key = "cob-id";
+        diagnostics_kv[2].key = "dlc";
+
+        msg_diagnostics.status_length  = 1;
+        msg_diagnostics.status = &diagnostics_stat;
+        diagnostics_stat.values_length = 3;
+        diagnostics_stat.values = diagnostics_kv;
+        diagnostics_stat.hardware_id = "mainboard";
     }
-    void poll() {
+    void poll(ros::NodeHandle &nh) {
+        poll_board();
+        poll_diagnostics(nh);
+    }
+private:
+    void poll_board() {
         can_controller::msg_board message;
         while (k_msgq_get(&can_controller::msgq_board, &message, K_NO_WAIT) == 0) {
             publish_fan(message);
@@ -73,7 +94,14 @@ public:
             publish_charge_voltage(message);
         }
     }
-private:
+
+    void poll_diagnostics(ros::NodeHandle &nh) {
+        can_controller::msg_diagnostics message;
+        while (k_msgq_get(&can_controller::msgq_diagnostics, &message, K_NO_WAIT) == 0) {
+            publish_diagnostics(message, nh.now());
+        }
+    }
+
     void publish_fan(const can_controller::msg_board &message) {
         msg_fan.data[0] = message.fan_duty;
         pub_fan.publish(&msg_fan);
@@ -120,6 +148,25 @@ private:
         msg_charge_voltage.data = message.charge_connector_voltage;
         pub_charge_voltage.publish(&msg_charge_voltage);
     }
+    void publish_diagnostics(const can_controller::msg_diagnostics &message, ros::Time stamp) {
+        diagnostics_stat.name = "mainboard: can_controller";
+        diagnostics_stat.level = diagnostic_msgs::DiagnosticStatus::WARN;
+        diagnostics_stat.message = corrupted_can_msg_msg;
+
+        char cob_id_buf[6];
+        snprintf(cob_id_buf, 6, "%d", message.cob_id);
+        char dlc_buf[2];
+        snprintf(dlc_buf, 2, "%d", message.dlc);
+
+        diagnostics_kv[0].value = corrupted_can_msg_error_code;
+        diagnostics_kv[1].value = cob_id_buf;
+        diagnostics_kv[2].value = dlc_buf;
+
+        static uint32_t seq{0};
+        msg_diagnostics.header.seq = seq++;
+        msg_diagnostics.header.stamp = stamp;
+        pub_diagnostics.publish(&msg_diagnostics);
+    }
     void callback_emergency(const std_msgs::Bool &req) {
         ros2board.emergency_stop = req.data;
         while (k_msgq_put(&can_controller::msgq_control, &ros2board, K_NO_WAIT) != 0)
@@ -145,6 +192,9 @@ private:
         while (k_msgq_put(&can_controller::msgq_control, &ros2board, K_NO_WAIT) != 0)
             k_msgq_purge(&can_controller::msgq_control);
     }
+    static constexpr const char* corrupted_can_msg_msg = "corrupted can message received";
+    static constexpr const char* corrupted_can_msg_error_code = "110";
+
     std_msgs::UInt8MultiArray msg_fan;
     std_msgs::ByteMultiArray msg_bumper;
     std_msgs::Bool msg_emergency;
@@ -152,6 +202,9 @@ private:
     lexxauto_msgs::BoardTemperatures msg_temperature;
     std_msgs::UInt8 msg_charge_delay;
     std_msgs::Float32 msg_charge_voltage;
+    diagnostic_msgs::DiagnosticArray  msg_diagnostics;
+    diagnostic_msgs::DiagnosticStatus diagnostics_stat;
+    diagnostic_msgs::KeyValue         diagnostics_kv[3];
     can_controller::msg_control ros2board{0};
     uint8_t msg_fan_data[1];
     int8_t msg_bumper_data[2];
@@ -163,6 +216,7 @@ private:
     ros::Publisher pub_power{"/body_control/power_state", &msg_power};
     ros::Publisher pub_charge_delay{"/body_control/charge_heartbeat_delay", &msg_charge_delay};
     ros::Publisher pub_charge_voltage{"/body_control/charge_connector_voltage", &msg_charge_voltage};
+    ros::Publisher pub_diagnostics{"/diagnostics", &msg_diagnostics};
     ros::Subscriber<std_msgs::Bool, ros_board> sub_emergency{
         "/control/request_emergency_stop", &ros_board::callback_emergency, this
     };

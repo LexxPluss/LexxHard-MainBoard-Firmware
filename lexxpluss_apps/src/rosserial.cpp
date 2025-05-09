@@ -62,7 +62,7 @@ public:
             nh.spinOnce();
             actuator.poll();
             bmu.poll();
-            board.poll();
+            board.poll(nh);
             dfu.poll();
             imu.poll();
             interlock.poll();

@@ -57,6 +57,7 @@ LOG_MODULE_REGISTER(can);
 char __aligned(4) msgq_bmu_buffer[8 * sizeof (msg_bmu)];
 char __aligned(4) msgq_board_buffer[8 * sizeof (msg_board)];
 char __aligned(4) msgq_control_buffer[8 * sizeof (msg_control)];
+char __aligned(4) msgq_diagnostics_buffer[8 * sizeof (msg_diagnostics)];
 
 CAN_DEFINE_MSGQ(msgq_can_bmu, 16);
 CAN_DEFINE_MSGQ(msgq_can_board, 4);
@@ -84,6 +85,7 @@ public:
         k_msgq_init(&msgq_bmu, msgq_bmu_buffer, sizeof (msg_bmu), 8);
         k_msgq_init(&msgq_board, msgq_board_buffer, sizeof (msg_board), 8);
         k_msgq_init(&msgq_control, msgq_control_buffer, sizeof (msg_control), 8);
+        k_msgq_init(&msgq_diagnostics, msgq_diagnostics_buffer, sizeof (msg_diagnostics), 8);
         dev = device_get_binding("CAN_2");
         if (!device_is_ready(dev))
             return -1;
@@ -102,20 +104,27 @@ public:
             bool handled{false};
             zcan_frame frame;
             if (k_msgq_get(&msgq_can_bmu, &frame, K_NO_WAIT) == 0) {
-                if (handler_bmu(frame)) {
+                bool is_corrupted{false};
+                if (handler_bmu(frame, is_corrupted)) {
                     while (k_msgq_put(&msgq_bmu, &bmu2ros, K_NO_WAIT) != 0)
                         k_msgq_purge(&msgq_bmu);
+                } else if(is_corrupted) {
+                    handler_corrupted_frame(frame);
                 }
                 handled = true;
             }
             if (k_msgq_get(&msgq_can_board, &frame, K_NO_WAIT) == 0) {
-                handler_board(frame);
-                while (k_msgq_put(&msgq_board, &board2ros, K_NO_WAIT) != 0)
-                    k_msgq_purge(&msgq_board);
+                if (handler_board(frame)) {
+                    while (k_msgq_put(&msgq_board, &board2ros, K_NO_WAIT) != 0)
+                        k_msgq_purge(&msgq_board);
+                } else {
+                    handler_corrupted_frame(frame);
+                }
                 handled = true;
             }
-            if (k_msgq_get(&msgq_can_log, &frame, K_NO_WAIT) == 0)
+            if (k_msgq_get(&msgq_can_log, &frame, K_NO_WAIT) == 0) {
                 handler_log(frame);
+            }
             if (k_msgq_get(&msgq_control, &ros2board, K_NO_WAIT) == 0) {
                 prev_cycle_ros = k_cycle_get_32();
                 handled = true;
@@ -240,9 +249,15 @@ private:
         can_attach_msgq(dev, &msgq_can_board, &filter_board);
         can_attach_msgq(dev, &msgq_can_log, &filter_log);
     }
-    bool handler_bmu(zcan_frame &frame) {
+    bool handler_bmu(zcan_frame &frame, bool &is_corrupted) {
         bool result{false};
         if (frame.id == 0x100) {
+            if (frame.dlc <= 6) {
+                LOG_ERR("receive wrong dlc. frame.id:%x, frame.dlc: %d", frame.id, frame.dlc);
+                is_corrupted = true;
+                return false;
+            }
+
             bmu2ros.mod_status1 = frame.data[0];
             bmu2ros.bmu_status = frame.data[1];
             bmu2ros.asoc = frame.data[2];
@@ -250,30 +265,66 @@ private:
             bmu2ros.soh = frame.data[4];
             bmu2ros.fet_temp = (frame.data[5] << 8) | frame.data[6];
         } else if (frame.id == 0x101) {
+            if (frame.dlc <= 6) {
+                LOG_ERR("0x101, dlc: %d", frame.dlc);
+                is_corrupted = true;
+                return false;
+            }
+
             bmu2ros.pack_current = (frame.data[0] << 8) | frame.data[1];
             bmu2ros.charging_current = (frame.data[2] << 8) | frame.data[3];
             bmu2ros.pack_voltage = (frame.data[4] << 8) | frame.data[5];
             bmu2ros.mod_status2 = frame.data[6];
         } else if (frame.id == 0x103) {
+            if (frame.dlc <= 5) {
+                LOG_ERR("receive wrong dlc. frame.id:%x, frame.dlc: %d", frame.id, frame.dlc);
+                is_corrupted = true;
+                return false;
+            }
+
             bmu2ros.design_capacity = (frame.data[0] << 8) | frame.data[1];
             bmu2ros.full_charge_capacity = (frame.data[2] << 8) | frame.data[3];
             bmu2ros.remain_capacity = (frame.data[4] << 8) | frame.data[5];
         } else if (frame.id == 0x110) {
+            if (frame.dlc <= 6) {
+                LOG_ERR("receive wrong dlc. frame.id:%x, frame.dlc: %d", frame.id, frame.dlc);
+                is_corrupted = true;
+                return false;
+            }
+
             bmu2ros.max_voltage.value = (frame.data[0] << 8) | frame.data[1];
             bmu2ros.max_voltage.id = frame.data[2];
             bmu2ros.min_voltage.value = (frame.data[4] << 8) | frame.data[5];
             bmu2ros.min_voltage.id = frame.data[6];
         } else if (frame.id == 0x111) {
+            if (frame.dlc <= 6) {
+                LOG_ERR("receive wrong dlc. frame.id:%x, frame.dlc: %d", frame.id, frame.dlc);
+                is_corrupted = true;
+                return false;
+            }
+
             bmu2ros.max_temp.value = (frame.data[0] << 8) | frame.data[1];
             bmu2ros.max_temp.id = frame.data[2];
             bmu2ros.min_temp.value = (frame.data[4] << 8) | frame.data[5];
             bmu2ros.min_temp.id = frame.data[6];
         } else if (frame.id == 0x112) {
+            if (frame.dlc <= 6) {
+                LOG_ERR("receive wrong dlc. frame.id:%x, frame.dlc: %d", frame.id, frame.dlc);
+                is_corrupted = true;
+                return false;
+            }
+
             bmu2ros.max_current.value = (frame.data[0] << 8) | frame.data[1];
             bmu2ros.max_current.id = frame.data[2];
             bmu2ros.min_current.value = (frame.data[4] << 8) | frame.data[5];
             bmu2ros.min_current.id = frame.data[6];
         } else if (frame.id == 0x113) {
+            if (frame.dlc <= 5) {
+                LOG_ERR("receive wrong dlc. frame.id:%x, frame.dlc: %d", frame.id, frame.dlc);
+                is_corrupted = true;
+                return false;
+            }
+
             bmu2ros.bmu_fw_ver = frame.data[0];
             bmu2ros.mod_fw_ver = frame.data[1];
             bmu2ros.serial_config = frame.data[2];
@@ -281,20 +332,38 @@ private:
             bmu2ros.bmu_alarm1 = frame.data[4];
             bmu2ros.bmu_alarm2 = frame.data[5];
         } else if (frame.id == 0x120) {
+            if (frame.dlc <= 6) {
+                LOG_ERR("receive wrong dlc. frame.id:%x, frame.dlc: %d", frame.id, frame.dlc);
+                is_corrupted = true;
+                return false;
+            }
+
             bmu2ros.min_cell_voltage.value = (frame.data[0] << 8) | frame.data[1];
             bmu2ros.min_cell_voltage.id = frame.data[2];
             bmu2ros.max_cell_voltage.value = (frame.data[4] << 8) | frame.data[5];
             bmu2ros.max_cell_voltage.id = frame.data[6];
         } else if (frame.id == 0x130) {
+            if (frame.dlc <= 5) {
+                LOG_ERR("receive wrong dlc. frame.id:%x, frame.dlc: %d", frame.id, frame.dlc);
+                is_corrupted = true;
+                return false;
+            }
+
             bmu2ros.manufacturing = (frame.data[0] << 8) | frame.data[1];
             bmu2ros.inspection = (frame.data[2] << 8) | frame.data[3];
             bmu2ros.serial = (frame.data[4] << 8) | frame.data[5];
             result = true;
         }
+
         return result;
     }
-    void handler_board(zcan_frame &frame) {
+    bool handler_board(zcan_frame &frame) {
         if (frame.id == 0x200) {
+            if (frame.dlc != 8) {
+                LOG_ERR("receive wrong dlc. frame.id:%x, frame.dlc: %d", frame.id, frame.dlc);
+                return false;
+            }
+
             uint8_t prev_state{board2ros.state};
             bool prev_wait_shutdown{board2ros.wait_shutdown};
             board2ros.bumper_switch[0] = (frame.data[0] & 0b00001000) != 0;
@@ -333,6 +402,11 @@ private:
                     k_msgq_purge(&led_controller::msgq);
             }
         } else if (frame.id == 0x202) {
+            if (frame.dlc == 0) {
+                LOG_ERR("receive wrong dlc. frame.id:%x, frame.dlc: %d", frame.id, frame.dlc);
+                return false;
+            }
+
             if (frame.data[0] == 1) {
                 led_controller::msg message{led_controller::msg::CHARGE_LEVEL, 2000};
                 while (k_msgq_put(&led_controller::msgq, &message, K_NO_WAIT) != 0)
@@ -348,12 +422,19 @@ private:
             }
             version_powerboard[frame.dlc] = '\0';
         } else if (frame.id == 0x204) {
+            if (frame.dlc <= 4) {
+                LOG_ERR("receive wrong dlc. frame.id:%x, frame.dlc: %d", frame.id, frame.dlc);
+                return false;
+            }
+
             uint16_t voltage_mv{static_cast<uint16_t>(frame.data[0] | (frame.data[1] << 8))};
             board2ros.charge_connector_voltage = voltage_mv * 1e-3f;
             board2ros.charge_check_count = frame.data[2];
             board2ros.charge_heartbeat_delay = frame.data[3];
             board2ros.charge_temperature_error = frame.data[4];
         }
+
+        return true;
     }
     void handler_log(zcan_frame &frame) {
         for (uint32_t i{0}; i < frame.dlc; ++i) {
@@ -362,6 +443,16 @@ private:
                 break;
             log.putc(data);
         }
+    }
+    void handler_corrupted_frame(zcan_frame &frame) {
+        diag2ros.cob_id = frame.id;
+        diag2ros.dlc = frame.dlc;
+        while (k_msgq_put(&msgq_diagnostics, &diag2ros, K_NO_WAIT) != 0)
+            k_msgq_purge(&msgq_diagnostics);
+
+        led_controller::msg message{led_controller::msg::CHARGING, 1000};
+        while (k_msgq_put(&led_controller::msgq, &message, K_NO_WAIT) != 0)
+            k_msgq_purge(&led_controller::msgq);
     }
     void send_message() const {
         bool main_overheat{board2ros.main_board_temp > 75.0f};
@@ -390,6 +481,7 @@ private:
     msg_bmu bmu2ros{0};
     msg_board board2ros{0};
     msg_control ros2board{true, false};
+    msg_diagnostics diag2ros{};
     log_printer log;
     uint32_t prev_cycle_ros{0}, prev_cycle_send{0};
     const device *dev{nullptr};
@@ -463,7 +555,7 @@ bool is_emergency()
 }
 
 k_thread thread;
-k_msgq msgq_bmu, msgq_board, msgq_control;
+k_msgq msgq_bmu, msgq_board, msgq_control, msgq_diagnostics;
 
 }
 
