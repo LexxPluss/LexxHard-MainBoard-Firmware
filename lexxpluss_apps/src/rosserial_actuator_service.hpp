@@ -60,7 +60,14 @@ private:
         res.detail.data_length = sizeof detail / sizeof detail[0];
     }
     void callback_init(const lexxauto_msgs::InitLinearActuatorRequest &req, lexxauto_msgs::InitLinearActuatorResponse &res) {
-        res.success = actuator_controller::init_location() == 0;
+        // ROS:[center,left,right], ROBOT:[left,center,right]
+        int8_t const directions[3]{
+            req.directions.data[1],
+            req.directions.data[0],
+            req.directions.data[2]
+        };
+
+        res.success = actuator_controller::init_location(directions) == 0;
     }
     ros::ServiceServer<lexxauto_msgs::LinearActuatorLocationRequest, lexxauto_msgs::LinearActuatorLocationResponse, ros_actuator_service>
         service_location{"/body_control/linear_actuator_location", &ros_actuator_service::callback_location, this};
