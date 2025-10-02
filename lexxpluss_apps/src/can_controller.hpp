@@ -58,7 +58,7 @@ struct msg_board {
 } __attribute__((aligned(4)));
 
 struct msg_control {
-    bool emergency_stop, power_off, wheel_power_off, lockdown;
+    bool emergency_stop, power_off, wheel_power_off, lockdown, auto_charge_request_enable;
 } __attribute__((aligned(4)));
 
 // msg_diagnostics only support can msg length failure for now
