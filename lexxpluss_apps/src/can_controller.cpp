@@ -199,6 +199,14 @@ public:
         ros2board.lockdown = false;
         heartbeat_timeout = false;
     }
+    void brd_acreqon() {
+        ros2board.auto_charge_request_enable = true;
+        heartbeat_timeout = false;
+    }
+    void brd_acreqoff() {
+        ros2board.auto_charge_request_enable = false;
+        heartbeat_timeout = false;
+    }
     void brd_info(const shell *shell) const {
         shell_print(shell,
                     "Bumper:%d/%d Emergency:%d/%d Power:%d\n"
@@ -466,14 +474,15 @@ private:
             .id{0x201},
             .rtr{CAN_DATAFRAME},
             .id_type{CAN_STANDARD_IDENTIFIER},
-            .dlc{6},
+            .dlc{7},
             .data{
                 ros2board.emergency_stop,
                 ros2board.power_off,
                 should_lockdown,
                 main_overheat,
                 actuator_overheat,
-                ros2board.wheel_power_off
+                ros2board.wheel_power_off,
+                ros2board.auto_charge_request_enable,
             }
         };
         can_send(dev, &frame, K_MSEC(100), nullptr, nullptr);
@@ -511,6 +520,18 @@ int brd_emgoff(const shell *shell, size_t argc, char **argv)
     return 0;
 }
 
+int brd_acreqon(const shell *shell, size_t argc, char **argv)
+{
+    impl.brd_acreqon();
+    return 0;
+}
+
+int brd_acreqoff(const shell *shell, size_t argc, char **argv)
+{
+    impl.brd_acreqoff();
+    return 0;
+}
+
 int brd_info(const shell *shell, size_t argc, char **argv)
 {
     impl.brd_info(shell);
@@ -519,6 +540,8 @@ int brd_info(const shell *shell, size_t argc, char **argv)
 
 SHELL_STATIC_SUBCMD_SET_CREATE(sub_brd,
     SHELL_CMD(emgoff, NULL, "ROS emergency stop off", brd_emgoff),
+    SHELL_CMD(acreqon, NULL, "ROS auto charge request enable on", brd_acreqon),
+    SHELL_CMD(acreqoff, NULL, "ROS auto charge request enable off", brd_acreqoff),
     SHELL_CMD(info, NULL, "Board information", brd_info),
     SHELL_SUBCMD_SET_END
 );

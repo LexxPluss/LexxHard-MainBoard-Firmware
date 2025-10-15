@@ -23,44 +23,30 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "rosserial_hardware_zephyr.hpp"
-#include "rosserial_actuator_service.hpp"
-#include "rosserial_board_service.hpp"
-#include "rosserial_service.hpp"
+#pragma once
 
-namespace lexxhard::rosserial_service {
+#include <zephyr.h>
+#include "std_srvs/SetBool.h"
+#include "ros/node_handle.h"
+#include "rosserial_board_store.hpp"
 
-class {
+namespace lexxhard {
+
+class ros_board_service {
 public:
-    int init() {
-        nh.initNode(const_cast<char*>("UART_2"));
-        actuator_service.init(nh);
-        board_service.init(nh);
-        return 0;
-    }
-    void run() {
-        while (true) {
-            nh.spinOnce();
-            k_usleep(1);
-        }
+    void init(ros::NodeHandle &nh) {
+        nh.advertiseService(service_auto_charge_request_enable);
     }
 private:
-    ros::NodeHandle nh;
-    ros_actuator_service actuator_service;
-    ros_board_service board_service;
-} impl;
+    void callback_auto_charge_request_enable(const std_srvs::SetBool::Request &req, std_srvs::SetBool::Response &res) {
+        lexxhard::ros_board_store::set_auto_charge_request_enable(req.data);
+        // Don't put ros2board into queue here. It will be put as a part of heartbeat.
 
-void init()
-{
-    impl.init();
-}
-
-void run(void *p1, void *p2, void *p3)
-{
-    impl.run();
-}
-
-k_thread thread;
+        res.success = true;
+    }
+    ros::ServiceServer<std_srvs::SetBool::Request, std_srvs::SetBool::Response, ros_board_service>
+        service_auto_charge_request_enable{"/control/auto_charge_request/enable", &ros_board_service::callback_auto_charge_request_enable, this};
+};
 
 }
 

@@ -39,6 +39,7 @@
 #include "std_msgs/UInt8.h"
 #include "std_msgs/Float32.h"
 #include "lexxauto_msgs/BoardTemperatures.h"
+#include "rosserial_board_store.hpp"
 #include "can_controller.hpp"
 
 namespace lexxhard {
@@ -168,27 +169,42 @@ private:
         pub_diagnostics.publish(&msg_diagnostics);
     }
     void callback_emergency(const std_msgs::Bool &req) {
-        ros2board.emergency_stop = req.data;
+        lexxhard::ros_board_store::set_emergency_stop(req.data);
+
+        if (prev_emergency_request && !req.data) {
+            ros_board_store::set_auto_charge_request_enable(false);
+        }
+        prev_emergency_request = req.data;
+
+        auto ros2board{ros_board_store::get_ros2board()};
         while (k_msgq_put(&can_controller::msgq_control, &ros2board, K_NO_WAIT) != 0)
             k_msgq_purge(&can_controller::msgq_control);
     }
     void callback_poweroff(const std_msgs::Bool &req) {
-        ros2board.power_off = req.data;
+        ros_board_store::set_power_off(req.data);
+
+        auto ros2board{ros_board_store::get_ros2board()};
         while (k_msgq_put(&can_controller::msgq_control, &ros2board, K_NO_WAIT) != 0)
             k_msgq_purge(&can_controller::msgq_control);
     }
     void callback_lockdown(const std_msgs::Bool &req) {
-        ros2board.lockdown = req.data;
+        ros_board_store::set_lockdown(req.data);
+
+        auto ros2board{ros_board_store::get_ros2board()};
         while (k_msgq_put(&can_controller::msgq_control, &ros2board, K_NO_WAIT) != 0)
             k_msgq_purge(&can_controller::msgq_control);
     }
     void callback_lexxhard(const std_msgs::String &req) {
-        if (strncmp(req.data, "wheel_", 6) == 0)
-            ros2board.wheel_power_off = strcmp(req.data, "wheel_poweroff") == 0;
+        if (strncmp(req.data, "wheel_", 6) == 0) {
+            ros_board_store::set_wheel_power_off(strcmp(req.data, "wheel_poweroff") == 0);
+        }
+
+        auto ros2board{ros_board_store::get_ros2board()};
         while (k_msgq_put(&can_controller::msgq_control, &ros2board, K_NO_WAIT) != 0)
             k_msgq_purge(&can_controller::msgq_control);
     }
     void callback_messenger(const std_msgs::Bool &req) {
+        auto ros2board{ros_board_store::get_ros2board()};
         while (k_msgq_put(&can_controller::msgq_control, &ros2board, K_NO_WAIT) != 0)
             k_msgq_purge(&can_controller::msgq_control);
     }
@@ -205,7 +221,6 @@ private:
     diagnostic_msgs::DiagnosticArray  msg_diagnostics;
     diagnostic_msgs::DiagnosticStatus diagnostics_stat;
     diagnostic_msgs::KeyValue         diagnostics_kv[3];
-    can_controller::msg_control ros2board{0};
     uint8_t msg_fan_data[1];
     int8_t msg_bumper_data[2];
     ros::Publisher pub_fan{"/sensor_set/fan", &msg_fan};
@@ -232,6 +247,7 @@ private:
     ros::Subscriber<std_msgs::Bool, ros_board> sub_messenger{
         "/lexxhard/mainboard_messenger_heartbeat", &ros_board::callback_messenger, this
     };
+    bool prev_emergency_request{false};
 };
 
 }

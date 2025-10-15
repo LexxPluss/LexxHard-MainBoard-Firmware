@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, LexxPluss Inc.
+ * Copyright (c) 2025, LexxPluss Inc.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -23,45 +23,14 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "rosserial_hardware_zephyr.hpp"
-#include "rosserial_actuator_service.hpp"
-#include "rosserial_board_service.hpp"
-#include "rosserial_service.hpp"
+#pragma once
+#include "can_controller.hpp"
 
-namespace lexxhard::rosserial_service {
-
-class {
-public:
-    int init() {
-        nh.initNode(const_cast<char*>("UART_2"));
-        actuator_service.init(nh);
-        board_service.init(nh);
-        return 0;
-    }
-    void run() {
-        while (true) {
-            nh.spinOnce();
-            k_usleep(1);
-        }
-    }
-private:
-    ros::NodeHandle nh;
-    ros_actuator_service actuator_service;
-    ros_board_service board_service;
-} impl;
-
-void init()
-{
-    impl.init();
+namespace lexxhard::ros_board_store {
+void set_emergency_stop(bool data);
+void set_power_off(bool data);
+void set_lockdown(bool data);
+void set_wheel_power_off(bool data);
+void set_auto_charge_request_enable(bool data);
+lexxhard::can_controller::msg_control get_ros2board();
 }
-
-void run(void *p1, void *p2, void *p3)
-{
-    impl.run();
-}
-
-k_thread thread;
-
-}
-
-// vim: set expandtab shiftwidth=4:
