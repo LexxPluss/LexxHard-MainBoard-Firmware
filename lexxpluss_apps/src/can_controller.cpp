@@ -547,6 +547,32 @@ SHELL_STATIC_SUBCMD_SET_CREATE(sub_brd,
 );
 SHELL_CMD_REGISTER(brd, &sub_brd, "Board commands", NULL);
 
+int can_diag_info(const shell *shell, size_t argc, char **argv)
+{
+    shell_print(shell, "CAN2 Overflow Diagnostics:");
+#ifdef CONFIG_CAN_STM32_OVERFLOW_DIAG
+    const struct device *dev = device_get_binding("CAN_2");
+    struct can_overflow_diag_info info;
+    int err = can_get_overflow_diag(dev, &info);
+    if (err != 0) {
+        shell_error(shell, "Failed to get CAN diagnostics (err %d)", err);
+        return err;
+    }
+
+    shell_print(shell, "  Count: %d", info.count);
+    shell_print(shell, "  First Overflow at: %u ms", info.first_timestamp);
+    shell_print(shell, "  Last Overflow at: %u ms", info.last_timestamp);
+#else
+    shell_print(shell, "  (Disabled in release build)");
+#endif
+    return 0;
+}
+
+SHELL_STATIC_SUBCMD_SET_CREATE(sub_can,
+    SHELL_CMD(diag, NULL, "Show CAN overflow diagnostics", can_diag_info),
+    SHELL_SUBCMD_SET_END);
+SHELL_CMD_REGISTER(can, &sub_can, "CAN commands", NULL);
+
 void init()
 {
     impl.init();
