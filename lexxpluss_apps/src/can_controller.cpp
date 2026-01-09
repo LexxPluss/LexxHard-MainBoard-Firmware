@@ -230,6 +230,32 @@ public:
                     board2ros.charge_connector_voltage, board2ros.charge_check_count, board2ros.charge_heartbeat_delay, board2ros.charge_temperature_error,
                     version, version_powerboard);
     }
+    void can_diag_info(const shell *shell) const {
+        shell_print(shell, "CAN2 Overflow Diagnostics:");
+#ifdef CONFIG_CAN_STM32_OVERFLOW_DIAG
+        if (dev == nullptr) {
+            shell_error(shell, "CAN device not initialized");
+            return;
+        }
+        if (!device_is_ready(dev)) {
+            shell_error(shell, "CAN device not ready");
+            return;
+        }
+
+        struct can_overflow_diag_info info;
+        int err{can_get_overflow_diag(dev, &info)};
+        if (err != 0) {
+            shell_error(shell, "Failed to get CAN diagnostics (err %d)", err);
+            return;
+        }
+
+        shell_print(shell, "  Count: %d", info.count);
+        shell_print(shell, "  First Overflow at: %u ms", info.first_timestamp);
+        shell_print(shell, "  Last Overflow at: %u ms", info.last_timestamp);
+#else
+        shell_print(shell, "  (Disabled in release build)");
+#endif
+    }
 private:
     void setup_can_filter() const {
         static const zcan_filter filter_bmu{
@@ -549,32 +575,7 @@ SHELL_CMD_REGISTER(brd, &sub_brd, "Board commands", NULL);
 
 int can_diag_info(const shell *shell, size_t argc, char **argv)
 {
-    shell_print(shell, "CAN2 Overflow Diagnostics:");
-#ifdef CONFIG_CAN_STM32_OVERFLOW_DIAG
-    const struct device *dev = device_get_binding("CAN_2");
-    struct can_overflow_diag_info info;
-
-    if(dev == NULL) {
-        shell_error(shell, "CAN device not found");
-        return -ENODEV;
-    }
-    if(!device_is_ready(dev)) {
-        shell_error(shell, "CAN device not ready");
-        return -ENODEV;
-    }
-
-    int err = can_get_overflow_diag(dev, &info);
-    if (err != 0) {
-        shell_error(shell, "Failed to get CAN diagnostics (err %d)", err);
-        return err;
-    }
-
-    shell_print(shell, "  Count: %d", info.count);
-    shell_print(shell, "  First Overflow at: %u ms", info.first_timestamp);
-    shell_print(shell, "  Last Overflow at: %u ms", info.last_timestamp);
-#else
-    shell_print(shell, "  (Disabled in release build)");
-#endif
+    impl.can_diag_info(shell);
     return 0;
 }
 
