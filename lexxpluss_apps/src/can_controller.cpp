@@ -553,6 +553,16 @@ int can_diag_info(const shell *shell, size_t argc, char **argv)
 #ifdef CONFIG_CAN_STM32_OVERFLOW_DIAG
     const struct device *dev = device_get_binding("CAN_2");
     struct can_overflow_diag_info info;
+
+    if(dev == NULL) {
+        shell_error(shell, "CAN device not found");
+        return -ENODEV;
+    }
+    if(!device_is_ready(dev)) {
+        shell_error(shell, "CAN device not ready");
+        return -ENODEV;
+    }
+
     int err = can_get_overflow_diag(dev, &info);
     if (err != 0) {
         shell_error(shell, "Failed to get CAN diagnostics (err %d)", err);
@@ -570,7 +580,8 @@ int can_diag_info(const shell *shell, size_t argc, char **argv)
 
 SHELL_STATIC_SUBCMD_SET_CREATE(sub_can,
     SHELL_CMD(diag, NULL, "Show CAN overflow diagnostics", can_diag_info),
-    SHELL_SUBCMD_SET_END);
+    SHELL_SUBCMD_SET_END
+);
 SHELL_CMD_REGISTER(can, &sub_can, "CAN commands", NULL);
 
 void init()
