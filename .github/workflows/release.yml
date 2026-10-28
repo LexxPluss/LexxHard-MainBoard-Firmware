@@ -26,9 +26,11 @@ on:
   push:
     tags:
       - 'v*'
+  pull_request:
+    branches: [ main ]
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     container:
       image: zephyrprojectrtos/zephyr-build:v0.21.0
       options: --user root
@@ -46,8 +48,13 @@ jobs:
           ZEPHYR_TOOLCHAIN_VARIANT=gnuarmemb make IN_HOST=1 firmware_initial
           ZEPHYR_TOOLCHAIN_VARIANT=gnuarmemb make IN_HOST=1 clean
           ZEPHYR_TOOLCHAIN_VARIANT=gnuarmemb make IN_HOST=1 firmware_tug_initial
+      - name: check release binaries
+        run: |
+          ls -l out/firmware.bin out/zephyr.signed.confirmed.bin out/firmware_tug.bin out/zephyr_tug.signed.confirmed.bin
+          sha256sum out/firmware.bin out/zephyr.signed.confirmed.bin out/firmware_tug.bin out/zephyr_tug.signed.confirmed.bin
       - name: release
         id: create_release
+        if: false
         uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -58,6 +65,7 @@ jobs:
           prerelease: false
       - name: upload initial firmware
         id: upload-release-asset-firmware
+        if: false
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -68,6 +76,7 @@ jobs:
           asset_content_type: application/octet-stream
       - name: upload update firmware
         id: upload-release-asset-updator
+        if: false
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -78,6 +87,7 @@ jobs:
           asset_content_type: application/octet-stream
       - name: upload initial firmware_tug
         id: upload-release-asset-firmware-tug
+        if: false
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -88,6 +98,7 @@ jobs:
           asset_content_type: application/octet-stream
       - name: upload update firmware_tug
         id: upload-release-asset-updator-tug
+        if: false
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -102,4 +113,4 @@ jobs:
           status: ${{ job.status }}
           steps: ${{ toJson(steps) }}
           channel: '#div-02-robotics-ci'
-        if: always()
+        if: false

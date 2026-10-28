@@ -30,7 +30,7 @@ on:
   workflow_dispatch:
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     container:
       image: zephyrprojectrtos/zephyr-build:v0.21.0
       options: --user root
@@ -53,4 +53,4 @@ jobs:
           status: ${{ job.status }}
           steps: ${{ toJson(steps) }}
           channel: '#div-02-robotics-ci'
-        if: always()
+        if: false
