@@ -19,6 +19,18 @@ endif()
 find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 project(spike_fw)
 
+# Under LTO the compiler emits the 64-bit atomic libcalls during link-time codegen, after the
+# linker has chosen the libmicroros.a members, so librcutils-atomic_64bits.c.obj is not pulled
+# in. Force its symbols (all four defined in rcutils atomic_64bits.c) to be undefined at link.
+if(CONFIG_LTO)
+    zephyr_ld_options(
+        -Wl,-u,__atomic_load_8
+        -Wl,-u,__atomic_store_8
+        -Wl,-u,__atomic_exchange_8
+        -Wl,-u,__atomic_fetch_add_8
+    )
+endif()
+
 # FW_UNIT selects the cumulative unit (a..g) up to which sources are compiled.
 if(NOT DEFINED FW_UNIT OR NOT FW_UNIT MATCHES "^[a-g]$")
     message(FATAL_ERROR "FW_UNIT must be set to a letter a..g (e.g. -DFW_UNIT=a)")
