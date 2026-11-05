@@ -41,6 +41,7 @@
 #include <std_srvs/srv/set_bool.h>
 #include <lexxauto_msgs/srv/init_linear_actuator.h>
 #include <lexxauto_msgs/srv/linear_actuator_location.h>
+#include "microros_typesupport.h"
 
 #define RCCHECK(fn) { rcl_ret_t temp_rc = fn; if (temp_rc != RCL_RET_OK) { printf("Failed status on line %d: %d. Aborting.\n", __LINE__, (int)temp_rc); for (;;) {}; } }
 #define RCSOFTCHECK(fn) { rcl_ret_t temp_rc = fn; if (temp_rc != RCL_RET_OK) { printf("Failed status on line %d: %d. Continuing.\n", __LINE__, (int)temp_rc); } }
