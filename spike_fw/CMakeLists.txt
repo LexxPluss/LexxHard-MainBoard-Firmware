@@ -49,7 +49,8 @@ endfunction()
 # Cumulative source table. Later units extend this table (b: in-house driver
 # module path; g: micro-ROS).
 fw_unit_sources(a src/main.cpp)
-fw_unit_sources(c src/can_controller.cpp src/interlock_controller.cpp)
+fw_unit_sources(c src/can_controller.cpp src/interlock_controller.cpp
+                  src/u9_stubs.cpp)
 fw_unit_sources(d src/actuator_controller.cpp src/adc_reader.cpp
                   src/pgv_controller.cpp src/towing_unit_controller.cpp
                   src/misc_controller.cpp)

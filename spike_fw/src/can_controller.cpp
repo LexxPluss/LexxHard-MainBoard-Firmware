@@ -23,12 +23,12 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <zephyr.h>
-#include <device.h>
-#include <drivers/can.h>
-#include <drivers/gpio.h>
-#include <logging/log.h>
-#include <shell/shell.h>
+#include <zephyr/kernel.h>
+#include <zephyr/device.h>
+#include <zephyr/drivers/can.h>
+#include <zephyr/drivers/gpio.h>
+#include <zephyr/logging/log.h>
+#include <zephyr/shell/shell.h>
 #include "interlock_controller.hpp"
 #include "led_controller.hpp"
 #include "misc_controller.hpp"
@@ -59,9 +59,9 @@ char __aligned(4) msgq_board_buffer[8 * sizeof (msg_board)];
 char __aligned(4) msgq_control_buffer[8 * sizeof (msg_control)];
 char __aligned(4) msgq_diagnostics_buffer[8 * sizeof (msg_diagnostics)];
 
-CAN_DEFINE_MSGQ(msgq_can_bmu, 16);
-CAN_DEFINE_MSGQ(msgq_can_board, 4);
-CAN_DEFINE_MSGQ(msgq_can_log, 8);
+CAN_MSGQ_DEFINE(msgq_can_bmu, 16);
+CAN_MSGQ_DEFINE(msgq_can_board, 4);
+CAN_MSGQ_DEFINE(msgq_can_log, 8);
 
 class log_printer {
 public:
@@ -70,7 +70,7 @@ public:
             buffer[index++] = c;
         if (c == '\n' || index >= 80) {
             buffer[index] = '\0';
-            LOG_INF("%s", log_strdup(buffer));
+            LOG_INF("%s", buffer);
             index = 0;
         }
     }
@@ -89,7 +89,9 @@ public:
         dev = device_get_binding("CAN_2");
         if (!device_is_ready(dev))
             return -1;
-        can_configure(dev, CAN_NORMAL_MODE, 500000);
+        can_set_bitrate(dev, 500000);
+        can_set_mode(dev, CAN_MODE_NORMAL);
+        can_start(dev);
         return 0;
     }
     void run() {
@@ -102,8 +104,8 @@ public:
         int heartbeat_led{1};
         while (true) {
             bool handled{false};
-            zcan_frame frame;
-            if (k_msgq_get(&msgq_can_bmu, &frame, K_NO_WAIT) == 0) {
+            can_frame frame;
+            if (k_msgq_get(&msgq_can_bmu, &frame, K_NO_WAIT) == 0 && !is_rtr(frame)) {
                 bool is_corrupted{false};
                 if (handler_bmu(frame, is_corrupted)) {
                     while (k_msgq_put(&msgq_bmu, &bmu2ros, K_NO_WAIT) != 0)
@@ -113,7 +115,7 @@ public:
                 }
                 handled = true;
             }
-            if (k_msgq_get(&msgq_can_board, &frame, K_NO_WAIT) == 0) {
+            if (k_msgq_get(&msgq_can_board, &frame, K_NO_WAIT) == 0 && !is_rtr(frame)) {
                 if (handler_board(frame)) {
                     while (k_msgq_put(&msgq_board, &board2ros, K_NO_WAIT) != 0)
                         k_msgq_purge(&msgq_board);
@@ -122,7 +124,7 @@ public:
                 }
                 handled = true;
             }
-            if (k_msgq_get(&msgq_can_log, &frame, K_NO_WAIT) == 0) {
+            if (k_msgq_get(&msgq_can_log, &frame, K_NO_WAIT) == 0 && !is_rtr(frame)) {
                 handler_log(frame);
             }
             if (k_msgq_get(&msgq_control, &ros2board, K_NO_WAIT) == 0) {
@@ -231,33 +233,19 @@ public:
                     version, version_powerboard);
     }
 private:
-    void setup_can_filter() const {
-        static const zcan_filter filter_bmu{
-            .id{0x100},
-            .rtr{CAN_DATAFRAME},
-            .id_type{CAN_STANDARD_IDENTIFIER},
-            .id_mask{0x7c0},
-            .rtr_mask{1}
-        };
-        static const zcan_filter filter_board{
-            .id{0x200},
-            .rtr{CAN_DATAFRAME},
-            .id_type{CAN_STANDARD_IDENTIFIER},
-            .id_mask{0x7f8},
-            .rtr_mask{1}
-        };
-        static const zcan_filter filter_log{
-            .id{0x300},
-            .rtr{CAN_DATAFRAME},
-            .id_type{CAN_STANDARD_IDENTIFIER},
-            .id_mask{CAN_STD_ID_MASK},
-            .rtr_mask{1}
-        };
-        can_attach_msgq(dev, &msgq_can_bmu, &filter_bmu);
-        can_attach_msgq(dev, &msgq_can_board, &filter_board);
-        can_attach_msgq(dev, &msgq_can_log, &filter_log);
+    // 2.6 filters had rtr_mask=1 (data frames only); 4.1 filters cannot match RTR, so drop them here.
+    static bool is_rtr(const can_frame &frame) {
+        return (frame.flags & CAN_FRAME_RTR) != 0;
     }
-    bool handler_bmu(zcan_frame &frame, bool &is_corrupted) {
+    void setup_can_filter() const {
+        static const can_filter filter_bmu{.id{0x100}, .mask{0x7c0}, .flags{0}};
+        static const can_filter filter_board{.id{0x200}, .mask{0x7f8}, .flags{0}};
+        static const can_filter filter_log{.id{0x300}, .mask{CAN_STD_ID_MASK}, .flags{0}};
+        can_add_rx_filter_msgq(dev, &msgq_can_bmu, &filter_bmu);
+        can_add_rx_filter_msgq(dev, &msgq_can_board, &filter_board);
+        can_add_rx_filter_msgq(dev, &msgq_can_log, &filter_log);
+    }
+    bool handler_bmu(can_frame &frame, bool &is_corrupted) {
         bool result{false};
         if (frame.id == 0x100) {
             if (frame.dlc <= 6) {
@@ -365,7 +353,7 @@ private:
 
         return result;
     }
-    bool handler_board(zcan_frame &frame) {
+    bool handler_board(can_frame &frame) {
         if (frame.id == 0x200) {
             if (frame.dlc != 8) {
                 LOG_ERR("receive wrong dlc. frame.id:%x, frame.dlc: %d", frame.id, frame.dlc);
@@ -444,7 +432,7 @@ private:
 
         return true;
     }
-    void handler_log(zcan_frame &frame) {
+    void handler_log(can_frame &frame) {
         for (uint32_t i{0}; i < frame.dlc; ++i) {
             uint8_t data{frame.data[i]};
             if (data == 0)
@@ -452,7 +440,7 @@ private:
             log.putc(data);
         }
     }
-    void handler_corrupted_frame(zcan_frame &frame) {
+    void handler_corrupted_frame(can_frame &frame) {
         diag2ros.cob_id = frame.id;
         diag2ros.dlc = frame.dlc;
         while (k_msgq_put(&msgq_diagnostics, &diag2ros, K_NO_WAIT) != 0)
@@ -470,21 +458,17 @@ private:
                 actuator_overheat = true;
         }
         const bool should_lockdown = !get_emergency_switch() && (ros2board.lockdown || heartbeat_timeout);
-        zcan_frame frame{
-            .id{0x201},
-            .rtr{CAN_DATAFRAME},
-            .id_type{CAN_STANDARD_IDENTIFIER},
-            .dlc{7},
-            .data{
-                ros2board.emergency_stop,
-                ros2board.power_off,
-                should_lockdown,
-                main_overheat,
-                actuator_overheat,
-                ros2board.wheel_power_off,
-                ros2board.auto_charge_request_enable,
-            }
-        };
+        can_frame frame{};
+        frame.id = 0x201;
+        frame.flags = 0;
+        frame.dlc = 7;
+        frame.data[0] = ros2board.emergency_stop;
+        frame.data[1] = ros2board.power_off;
+        frame.data[2] = should_lockdown;
+        frame.data[3] = main_overheat;
+        frame.data[4] = actuator_overheat;
+        frame.data[5] = ros2board.wheel_power_off;
+        frame.data[6] = ros2board.auto_charge_request_enable;
         can_send(dev, &frame, K_MSEC(100), nullptr, nullptr);
     }
     msg_bmu bmu2ros{0};
