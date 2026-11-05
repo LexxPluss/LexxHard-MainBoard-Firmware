@@ -9,6 +9,12 @@ if(DEFINED FW_UNIT AND FW_UNIT MATCHES "^[a-g]$")
         list(APPEND ZEPHYR_EXTRA_MODULES ${CMAKE_CURRENT_LIST_DIR}/modules/lexxpluss_drivers)
         list(APPEND EXTRA_CONF_FILE ${CMAKE_CURRENT_LIST_DIR}/prj_sensors.conf)
     endif()
+    # Unit g adds the micro-ROS module (same early-index technique).
+    if(early_unit_pos GREATER 5)
+        list(APPEND ZEPHYR_EXTRA_MODULES ${CMAKE_CURRENT_LIST_DIR}/../micro_ros_zephyr_module/modules/libmicroros)
+        # MEASUREMENT ONLY: enlarged code partition (see the overlay); applied after the board overlay.
+        list(APPEND EXTRA_DTC_OVERLAY_FILE ${CMAKE_CURRENT_LIST_DIR}/boards/u9g_measure_flash_region.overlay)
+    endif()
 endif()
 find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 project(spike_fw)
@@ -59,11 +65,13 @@ fw_unit_sources(e src/firmware_updater.cpp src/sdlog_controller.cpp
                   src/tof_controller.cpp)
 fw_unit_sources(f src/imu_controller.cpp src/uss_controller.cpp
                   src/led_controller.cpp)
+fw_unit_sources(g src/microros_types.c src/microros_transport_uart.c)
 
 fw_unit_defines(c CAN INTERLOCK)
 fw_unit_defines(d ACTUATOR ADC PGV TOWING MISC)
 fw_unit_defines(e UPDATER SDLOG LOG RUNAWAY TOF)
 fw_unit_defines(f IMU USS LED)
+fw_unit_defines(g MICROROS)
 
 if(ENABLE_INTERLOCK)
     add_definitions(-DENABLE_INTERLOCK)
