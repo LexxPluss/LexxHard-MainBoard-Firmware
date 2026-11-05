@@ -23,16 +23,33 @@
 
 manifest:
   remotes:
+    - name: zephyrproject-rtos
+      url-base: https://github.com/zephyrproject-rtos
     - name: lexxpluss
       url-base: https://github.com/LexxPluss
+    - name: micro-ROS
+      url-base: https://github.com/micro-ROS
   projects:
     - name: zephyr
-      remote: lexxpluss
-      revision: lexxpluss/main
-      import: true
+      remote: zephyrproject-rtos
+      revision: v4.1.0
+      import:
+        name-allowlist:
+          - cmsis
+          - cmsis_6
+          - hal_stm32
+          - mcuboot
+          - picolibc
+          - zcbor
+          - mbedtls
+          - tinycrypt
     - name: ros_msgs
       remote: lexxpluss
       revision: main
       path: ros_msgs
+    - name: micro_ros_zephyr_module
+      remote: micro-ROS
+      revision: jazzy
+      path: micro_ros_zephyr_module
   self:
     path: lexxpluss_apps
