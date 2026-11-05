@@ -8,4 +8,12 @@ config LEXXHARD_STM32_HAL_APP
 	select USE_STM32_HAL_TIM_EX
 	select USE_STM32_HAL_GPIO
 
+config LEXXHARD_MICROROS_NO_EXECUTOR
+	bool "Replace the rclc executor by a plain rcl wait-set loop"
+	default n
+	help
+	  Size measurement only: the micro-ROS sample uses a hand-written rcl wait-set loop
+	  instead of the rclc executor, so that rclc executor.c and the rcl_action code that
+	  it references are not linked.
+
 source "Kconfig.zephyr"

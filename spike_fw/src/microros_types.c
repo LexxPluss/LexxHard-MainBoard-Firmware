@@ -9,7 +9,9 @@
 
 #include <rcl/rcl.h>
 #include <rclc/rclc.h>
+#ifndef CONFIG_LEXXHARD_MICROROS_NO_EXECUTOR
 #include <rclc/executor.h>
+#endif
 #include <rmw_microros/rmw_microros.h>
 #include "microros_transports.h"
 #include "microros_types.h"
@@ -175,6 +177,54 @@ void lexxhard_microros_run(void)
 	rcl_timer_t timer;
 	RCCHECK(rclc_timer_init_default(&timer, &support, RCL_MS_TO_NS(1000), timer_callback));
 
+#ifdef CONFIG_LEXXHARD_MICROROS_NO_EXECUTOR
+	/* plain rcl wait-set loop instead of the rclc executor: 2 subscriptions, 3 services, 1 timer */
+	rcl_wait_set_t wait_set = rcl_get_zero_initialized_wait_set();
+	RCCHECK(rcl_wait_set_init(&wait_set, 2, 0, 1, 0, 3, 0, &support.context, allocator));
+
+	while (1) {
+		RCSOFTCHECK(rcl_wait_set_clear(&wait_set));
+		RCSOFTCHECK(rcl_wait_set_add_timer(&wait_set, &timer, NULL));
+		RCSOFTCHECK(rcl_wait_set_add_subscription(&wait_set, &sub_bool, NULL));
+		RCSOFTCHECK(rcl_wait_set_add_subscription(&wait_set, &sub_u8, NULL));
+		RCSOFTCHECK(rcl_wait_set_add_service(&wait_set, &srv_set_bool, NULL));
+		RCSOFTCHECK(rcl_wait_set_add_service(&wait_set, &srv_init_actuator, NULL));
+		RCSOFTCHECK(rcl_wait_set_add_service(&wait_set, &srv_actuator_location, NULL));
+		(void) rcl_wait(&wait_set, RCL_MS_TO_NS(100));
+
+		if (wait_set.timers[0] != NULL) {
+			bool ready = false;
+			if (rcl_timer_is_ready(&timer, &ready) == RCL_RET_OK && ready) {
+				RCSOFTCHECK(rcl_timer_call(&timer));
+			}
+		}
+		if (wait_set.subscriptions[0] != NULL &&
+		    rcl_take(&sub_bool, &sub_msg_bool, NULL, NULL) == RCL_RET_OK) {
+			on_bool(&sub_msg_bool);
+		}
+		if (wait_set.subscriptions[1] != NULL &&
+		    rcl_take(&sub_u8, &sub_msg_u8, NULL, NULL) == RCL_RET_OK) {
+			on_u8(&sub_msg_u8);
+		}
+		rmw_request_id_t header;
+		if (wait_set.services[0] != NULL &&
+		    rcl_take_request(&srv_set_bool, &header, &req_set_bool) == RCL_RET_OK) {
+			on_set_bool(&req_set_bool, &res_set_bool);
+			RCSOFTCHECK(rcl_send_response(&srv_set_bool, &header, &res_set_bool));
+		}
+		if (wait_set.services[1] != NULL &&
+		    rcl_take_request(&srv_init_actuator, &header, &req_init_actuator) == RCL_RET_OK) {
+			on_init_actuator(&req_init_actuator, &res_init_actuator);
+			RCSOFTCHECK(rcl_send_response(&srv_init_actuator, &header, &res_init_actuator));
+		}
+		if (wait_set.services[2] != NULL &&
+		    rcl_take_request(&srv_actuator_location, &header, &req_actuator_location) == RCL_RET_OK) {
+			on_actuator_location(&req_actuator_location, &res_actuator_location);
+			RCSOFTCHECK(rcl_send_response(&srv_actuator_location, &header, &res_actuator_location));
+		}
+		k_msleep(100);
+	}
+#else
 	rclc_executor_t executor;
 	RCCHECK(rclc_executor_init(&executor, &support.context, 6, &allocator));
 	RCCHECK(rclc_executor_add_timer(&executor, &timer));
@@ -190,4 +240,5 @@ void lexxhard_microros_run(void)
 		rclc_executor_spin_some(&executor, 100);
 		k_msleep(100);
 	}
+#endif
 }
