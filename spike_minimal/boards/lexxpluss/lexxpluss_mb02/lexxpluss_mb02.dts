@@ -122,11 +122,11 @@
 			label = "storage";
 			reg = <0x00020000 DT_SIZE_K(128)>;
 		};
-		image_0_primary_partition: partition@40000 {
+		slot0_partition: image_0_primary_partition: partition@40000 {
 			label = "image-0";
 			reg = <0x00040000 DT_SIZE_K(256)>;
 		};
-		image_0_secondary_partition: partition@80000 {
+		slot1_partition: image_0_secondary_partition: partition@80000 {
 			label = "image-1";
 			reg = <0x00080000 DT_SIZE_K(256)>;
 		};
@@ -136,3 +136,129 @@
 		};
 	};
 };
+
+/* Peripherals the firmware needs; sensor and LED device nodes are added later. */
+
+&spi1 {
+	pinctrl-0 = <&spi1_sck_pg11 &spi1_miso_pb4 &spi1_mosi_pb5>;
+	pinctrl-names = "default";
+	status = "okay";
+};
+
+&spi2 {
+	pinctrl-0 = <&spi2_sck_pi1 &spi2_miso_pi2 &spi2_mosi_pi3>;
+	pinctrl-names = "default";
+	status = "okay";
+};
+
+&spi4 {
+	pinctrl-0 = <&spi4_sck_pe2 &spi4_miso_pe5 &spi4_mosi_pe6>;
+	pinctrl-names = "default";
+	status = "okay";
+};
+
+&spi5 {
+	pinctrl-0 = <&spi5_nss_pf6 &spi5_sck_pf7 &spi5_miso_pf8 &spi5_mosi_pf9>;
+	pinctrl-names = "default";
+	status = "okay";
+};
+
+&spi6 {
+	pinctrl-0 = <&spi6_sck_pa5 &spi6_miso_pa6 &spi6_mosi_pa7>;
+	pinctrl-names = "default";
+	status = "okay";
+};
+
+&adc1 {
+	pinctrl-0 = <&adc1_in8_pb0 &adc1_in9_pb1 &adc1_in10_pc0
+		     &adc1_in11_pc1 &adc1_in12_pc2 &adc1_in13_pc3>;
+	pinctrl-names = "default";
+	/* APB2 108 MHz / 4 = 27 MHz, below the 36 MHz F7 ADC limit */
+	st,adc-prescaler = <4>;
+	status = "okay";
+};
+
+&timers1 {
+	status = "okay";
+	pwm1: pwm {
+		status = "okay";
+		pinctrl-0 = <&tim1_ch1_pe9 &tim1_ch2_pe11>;
+		pinctrl-names = "default";
+	};
+};
+
+&timers2 {
+	status = "okay";
+	pwm2: pwm {
+		status = "okay";
+		pinctrl-0 = <&tim2_ch3_pb10 &tim2_ch4_pb11>;
+		pinctrl-names = "default";
+		label = "PWM_2";
+	};
+};
+
+&timers3 {
+	status = "okay";
+	pwm3: pwm {
+		status = "okay";
+		pinctrl-0 = <&tim3_ch1_pc6 &tim3_ch2_pc7>;
+		pinctrl-names = "default";
+	};
+};
+
+&timers4 {
+	status = "okay";
+	pwm4: pwm {
+		status = "okay";
+		pinctrl-0 = <&tim4_ch1_pd12 &tim4_ch2_pd13>;
+		pinctrl-names = "default";
+	};
+};
+
+&timers5 {
+	status = "okay";
+	pwm5: pwm {
+		status = "okay";
+		pinctrl-0 = <&tim5_ch1_ph10 &tim5_ch2_ph11>;
+		pinctrl-names = "default";
+		label = "PWM_5";
+	};
+};
+
+&timers8 {
+	status = "okay";
+	pwm8: pwm {
+		status = "okay";
+		pinctrl-0 = <&tim8_ch1_pi5 &tim8_ch2_pi6>;
+		pinctrl-names = "default";
+		label = "PWM_8";
+	};
+};
+
+/* The STM32 SDMMC driver registers the disk as "SD" (disk-name default). */
+&sdmmc1 {
+	pinctrl-0 = <&sdmmc1_d0_pc8 &sdmmc1_d1_pc9 &sdmmc1_d2_pc10
+		     &sdmmc1_d3_pc11 &sdmmc1_ck_pc12 &sdmmc1_cmd_pd2>;
+	pinctrl-names = "default";
+	bus-width = <4>;
+	status = "okay";
+};
+
+/*
+ * In Zephyr 4.x device_get_binding() matches the node "label" property (or the
+ * node name when absent). The firmware looks devices up by these 2.6 names.
+ */
+&gpioa { label = "GPIOA"; };
+&gpiob { label = "GPIOB"; };
+&gpioc { label = "GPIOC"; };
+&gpiod { label = "GPIOD"; };
+&gpioe { label = "GPIOE"; };
+&gpiof { label = "GPIOF"; };
+&gpiog { label = "GPIOG"; };
+&gpioh { label = "GPIOH"; };
+&gpioi { label = "GPIOI"; };
+&gpioj { label = "GPIOJ"; };
+&uart4 { label = "UART_4"; };
+&i2c4 { label = "I2C_4"; };
+&can2 { label = "CAN_2"; };
+&adc1 { label = "ADC_1"; };
