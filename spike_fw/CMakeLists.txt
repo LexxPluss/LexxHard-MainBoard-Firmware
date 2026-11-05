@@ -1,6 +1,15 @@
 # SPDX-License-Identifier: BSD-2-Clause
 cmake_minimum_required(VERSION 3.20.0)
 list(APPEND BOARD_ROOT ${CMAKE_CURRENT_LIST_DIR}/../spike_minimal)
+# From unit b on, the in-house driver module is part of the build. The module
+# list must be known before find_package(Zephyr), so the unit index is derived here.
+if(DEFINED FW_UNIT AND FW_UNIT MATCHES "^[a-g]$")
+    string(FIND "abcdefg" "${FW_UNIT}" early_unit_pos)
+    if(early_unit_pos GREATER 0)
+        list(APPEND ZEPHYR_EXTRA_MODULES ${CMAKE_CURRENT_LIST_DIR}/modules/lexxpluss_drivers)
+        list(APPEND EXTRA_CONF_FILE ${CMAKE_CURRENT_LIST_DIR}/prj_sensors.conf)
+    endif()
+endif()
 find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 project(spike_fw)
 
