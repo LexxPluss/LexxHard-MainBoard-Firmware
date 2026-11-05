@@ -48,3 +48,6 @@ start.sh
 # Zephyr 4.x / micro-ROS spike
 /build-*/
 /micro_ros_zephyr_module/
+/.codegraph/
+/.serena/
+/CLAUDE.md
