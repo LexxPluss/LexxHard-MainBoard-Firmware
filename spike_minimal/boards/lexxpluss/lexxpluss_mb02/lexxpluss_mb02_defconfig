@@ -4,3 +4,16 @@ CONFIG_SERIAL=y
 CONFIG_CONSOLE=y
 CONFIG_UART_CONSOLE=y
 CONFIG_GPIO=y
+
+# Hardware drivers enabled by the 2.6 board defconfig (U9d); names confirmed in Zephyr 4.1.0.
+# PINMUX is gone in 4.x (pinctrl); WS2812_STRIP (WS2812_STRIP_SPI in 4.1) is added with unit f;
+# SENSOR/MAXBOTIX/ADIS16470 stay in spike_fw/prj_sensors.conf.
+CONFIG_SPI=y
+CONFIG_ADC=y
+CONFIG_PWM=y
+# bxCAN driver (CONFIG_CAN_STM32_BXCAN defaults y for the enabled st,stm32-bxcan can2 node)
+CONFIG_CAN=y
+CONFIG_I2C=y
+CONFIG_CLOCK_CONTROL=y
+CONFIG_LOG=y
+CONFIG_LED_STRIP=y

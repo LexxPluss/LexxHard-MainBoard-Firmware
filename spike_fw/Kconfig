@@ -1,0 +1,11 @@
+# STM32 HAL modules used directly by actuator_controller.cpp (HAL_TIM_Encoder_*,
+# HAL_TIMEx_MasterConfigSynchronization, HAL_GPIO_Init). They are hidden symbols,
+# so they can only be enabled by a select.
+config LEXXHARD_STM32_HAL_APP
+	bool
+	default y
+	select USE_STM32_HAL_TIM
+	select USE_STM32_HAL_TIM_EX
+	select USE_STM32_HAL_GPIO
+
+source "Kconfig.zephyr"

@@ -23,13 +23,13 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <zephyr.h>
-#include <device.h>
-#include <drivers/gpio.h>
-#include <drivers/uart.h>
-#include <logging/log.h>
-#include <shell/shell.h>
-#include <sys/ring_buffer.h>
+#include <zephyr/kernel.h>
+#include <zephyr/device.h>
+#include <zephyr/drivers/gpio.h>
+#include <zephyr/drivers/uart.h>
+#include <zephyr/logging/log.h>
+#include <zephyr/shell/shell.h>
+#include <zephyr/sys/ring_buffer.h>
 #include "pgv_controller.hpp"
 
 namespace lexxhard::pgv_controller {
@@ -222,8 +222,8 @@ private:
             check ^= buf[i];
         return check == buf[tail];
     }
-    uint32_t rb_count(const ring_buf *rb) const {
-        return rb->tail - rb->head;
+    uint32_t rb_count(ring_buf *rb) {
+        return ring_buf_size_get(rb);
     }
     void send(const uint8_t *buf, uint32_t length) {
         if (device_is_ready(dev_485)) {
@@ -240,7 +240,7 @@ private:
             gpio_pin_set(dev_en, 2, 0);
         }
     }
-    bool wait_data(uint32_t length) const {
+    bool wait_data(uint32_t length) {
         for (int i{0}; i < 100; ++i) {
             if (rb_count(&rxbuf.rb) >= length)
                 return true;
@@ -272,7 +272,7 @@ private:
     }
     struct {
         ring_buf rb;
-        uint32_t buf[256 / sizeof (uint32_t)];
+        uint8_t buf[256];
     } txbuf, rxbuf;
     const device *dev_485{nullptr}, *dev_en{nullptr}, *dev_en_n{nullptr};
     msg pgv2ros;

@@ -25,7 +25,7 @@
 
 #pragma once
 
-#include <zephyr.h>
+#include <zephyr/kernel.h>
 
 #define LOADED 1
 #define UNLOADED 0
