@@ -23,9 +23,9 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <zephyr.h>
-#include <logging/log.h>
-#include <shell/shell.h>
+#include <zephyr/kernel.h>
+#include <zephyr/logging/log.h>
+#include <zephyr/shell/shell.h>
 #include "adc_reader.hpp"
 #include "tof_controller.hpp"
 

@@ -23,10 +23,11 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <zephyr.h>
-#include <logging/log_backend.h>
-#include <logging/log_backend_std.h>
-#include <shell/shell.h>
+#include <zephyr/kernel.h>
+#include <zephyr/logging/log_backend.h>
+#include <zephyr/logging/log_backend_std.h>
+#include <zephyr/logging/log_output.h>
+#include <zephyr/shell/shell.h>
 
 namespace lexxhard::log_controller {
 
@@ -86,9 +87,11 @@ void logapi_init(const log_backend *const backend)
     ringbuf.init();
 }
 
-void logapi_put(const log_backend *const backend, log_msg *msg)
+void logapi_process(const log_backend *const backend, log_msg_generic *msg)
 {
-    log_backend_std_put(&log_output, 0, msg);
+    const log_format_func_t format_func{log_format_func_t_get(LOG_OUTPUT_TEXT)};
+    // Flags stay 0 as in the 2.6 firmware (no level/timestamp prefix).
+    format_func(&log_output, &msg->log, 0);
 }
 
 void logapi_panic(log_backend const *const backend)
@@ -102,7 +105,7 @@ void logapi_dropped(const log_backend *const backend, uint32_t cnt)
 }
 
 const log_backend_api log_backend_mem_api{
-    .put = logapi_put,
+    .process = logapi_process,
     .dropped = logapi_dropped,
     .panic = logapi_panic,
     .init = logapi_init,

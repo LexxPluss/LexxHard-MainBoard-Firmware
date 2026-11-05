@@ -36,6 +36,7 @@ manifest:
       import:
         name-allowlist:
           - cmsis
+          - fatfs
           - cmsis_6
           - hal_stm32
           - mcuboot
