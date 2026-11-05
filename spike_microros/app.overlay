@@ -1,0 +1,7 @@
+/* The module serial transport is fixed to the usart1 node label; move the console away from it. */
+/ {
+	chosen {
+		zephyr,console = &uart4;
+		zephyr,shell-uart = &uart4;
+	};
+};
