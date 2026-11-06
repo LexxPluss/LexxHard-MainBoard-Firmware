@@ -19,7 +19,24 @@ mainline ones and are not usable on this branch.
 
 ## Disk and time
 
-Not measured yet (disk use of the workspace and docker image, and build time).
+One measurement on one machine (mm-laptop, fast network, 2026-11-06); other machines will differ.
+
+- `make setup`: about 4 minutes (west update of zephyr v4.1.0, modules, ros_msgs, micro_ros_zephyr_module, and 22 clones of the micro-ROS ROS 2 sources).
+- `make firmware`: about 2 minutes after setup.
+- Disk of the worktree after setup and one firmware build: 3.1 GB (zephyr 1.4 GB, modules 1.3 GB, micro_ros_zephyr_module 471 MB, build directory 48 MB).
+- Docker image `zephyrprojectrtos/zephyr-build:v0.27.4`: 16.2 GB (pulled by setup when absent).
+- The times are for a machine that already had the docker image.
+
+## Comparing results
+
+The CHECK lines (E1, E6, E8, E9) are the pass criteria. The md5 of the whole `zephyr.signed.bin` is NOT a
+reproducibility criterion: the RSA signature in its last 256 bytes differs from build to build (measured: two builds
+of the same source differ only in bytes 240133 to 240388 of 240388). To compare two builds, compare the file without
+its signature part, e.g. `cmp -n 240132 <a> <b>` (the length is the payload size of that build, `signed_image_bytes`
+minus 256, valid while the size is equal).
+
+In a fresh clone the micro-ROS sources came out at the same commits as the earlier builds (22 ROS 2 repositories and
+micro_ros_zephyr_module 87dbe3a).
 
 ## Scripts
 

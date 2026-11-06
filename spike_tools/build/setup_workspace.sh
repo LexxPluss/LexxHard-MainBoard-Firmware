@@ -17,6 +17,13 @@ SETUP_BRANCH="feat/zephyr-4.1-microros-spike"
 SETUP_IMG=zephyrprojectrtos/zephyr-build:v0.27.4
 SETUP_MK_REL=micro_ros_zephyr_module/modules/libmicroros
 
+# URL of the first remote of repository $1 (west projects do not name it origin).
+setup_first_remote_url() {
+  local first
+  first=$(git -C "$1" remote 2>&1 | head -n 1)
+  git -C "$1" remote get-url "$first" 2>&1
+}
+
 setup_provenance() {
   local m=$SETUP_WT/$SETUP_MK_REL r d
   echo "== provenance (floating branches: zephyr tag v4.1.0, ros_msgs main, micro_ros_zephyr_module jazzy, ROS 2 jazzy/ros2)"
@@ -25,7 +32,7 @@ setup_provenance() {
   echo "worktree HEAD: $(git -C "$SETUP_WT" rev-parse HEAD 2>&1)"
   echo "west.yml md5: $(md5sum "$SETUP_WT/lexxpluss_apps/west.yml" | cut -d' ' -f1)"
   for d in zephyr micro_ros_zephyr_module ros_msgs; do
-    echo "$d HEAD: $(git -C "$SETUP_WT/$d" rev-parse HEAD 2>&1) $(git -C "$SETUP_WT/$d" remote get-url origin 2>&1)"
+    echo "$d HEAD: $(git -C "$SETUP_WT/$d" rev-parse HEAD 2>&1) $(setup_first_remote_url "$SETUP_WT/$d")"
   done
   echo "ROS 2 source repositories in micro_ros_src/src (HEAD, remote url):"
   find "$m/micro_ros_src/src" -maxdepth 2 -name .git 2>/dev/null | sort | while read -r g; do
