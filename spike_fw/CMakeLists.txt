@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: BSD-2-Clause
 cmake_minimum_required(VERSION 3.20.0)
 list(APPEND BOARD_ROOT ${CMAKE_CURRENT_LIST_DIR}/../spike_minimal)
+option(SPIKE_REAL_SLOT "Use the real 256 KiB slots (no measurement overlay) for the units g and h" OFF)
 # From unit b on, the in-house driver module is part of the build. The module
 # list must be known before find_package(Zephyr), so the unit index is derived here.
 if(DEFINED FW_UNIT AND FW_UNIT MATCHES "^[a-h]$")
@@ -13,7 +14,10 @@ if(DEFINED FW_UNIT AND FW_UNIT MATCHES "^[a-h]$")
     if(early_unit_pos GREATER 5)
         list(APPEND ZEPHYR_EXTRA_MODULES ${CMAKE_CURRENT_LIST_DIR}/../micro_ros_zephyr_module/modules/libmicroros)
         # MEASUREMENT ONLY: enlarged code partition (see the overlay); applied after the board overlay.
-        list(APPEND EXTRA_DTC_OVERLAY_FILE ${CMAKE_CURRENT_LIST_DIR}/boards/u9g_measure_flash_region.overlay)
+        # This is the measurement overlay that SPIKE_REAL_SLOT=ON removes.
+        if(NOT SPIKE_REAL_SLOT)
+            list(APPEND EXTRA_DTC_OVERLAY_FILE ${CMAKE_CURRENT_LIST_DIR}/boards/u9g_measure_flash_region.overlay)
+        endif()
     endif()
 endif()
 find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
