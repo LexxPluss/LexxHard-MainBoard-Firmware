@@ -1,0 +1,9 @@
+# Baseline B0 of the size experiments U10: the U9g measurement of the firmware
+# without rosserial plus the all-types micro-ROS sample (newlib nano, type
+# descriptions disabled, measurement overlay).
+# Source: /home/mmeikari/log/zephyr4_u9_g_20261105_202043/size.txt
+# (size -B: Flash = text+data, RAM = data+bss).
+# Expected member counts of that map, for reference: rcl_action 9,
+# typesupport_c 28, introspection 34.
+flash=275446
+ram=253172

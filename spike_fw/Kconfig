@@ -1,0 +1,28 @@
+# STM32 HAL modules used directly by actuator_controller.cpp (HAL_TIM_Encoder_*,
+# HAL_TIMEx_MasterConfigSynchronization, HAL_GPIO_Init). They are hidden symbols,
+# so they can only be enabled by a select.
+config LEXXHARD_STM32_HAL_APP
+	bool
+	default y
+	select USE_STM32_HAL_TIM
+	select USE_STM32_HAL_TIM_EX
+	select USE_STM32_HAL_GPIO
+
+config LEXXHARD_MICROROS_NO_EXECUTOR
+	bool "Replace the rclc executor by a plain rcl wait-set loop"
+	default n
+	help
+	  Size measurement only: the micro-ROS sample uses a hand-written rcl wait-set loop
+	  instead of the rclc executor, so that rclc executor.c and the rcl_action code that
+	  it references are not linked.
+
+config LEXXHARD_MICROROS_DIRECT_TYPESUPPORT
+	bool "Ask the micro-XRCE-DDS type support directly in the micro-ROS sample"
+	default n
+	help
+	  Size measurement only: the micro-ROS sample passes the rosidl_typesupport_microxrcedds_c
+	  handles to rcl instead of the rosidl_typesupport_c dispatch handles, so that the
+	  rosidl_typesupport_c dispatch tables and the introspection type support that they
+	  reference are not linked.
+
+source "Kconfig.zephyr"

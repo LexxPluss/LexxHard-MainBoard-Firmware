@@ -1,0 +1,3 @@
+# SPDX-License-Identifier: BSD-2-Clause
+rsource "drivers/sensor/maxbotix/Kconfig"
+rsource "drivers/sensor/adis16470/Kconfig"

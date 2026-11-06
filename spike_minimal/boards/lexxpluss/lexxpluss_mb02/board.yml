@@ -1,0 +1,6 @@
+board:
+  name: lexxpluss_mb02
+  full_name: LexxPluss Main Control Unit board V2
+  vendor: lexxpluss
+  socs:
+    - name: stm32f769xx

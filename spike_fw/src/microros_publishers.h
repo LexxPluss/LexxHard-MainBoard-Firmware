@@ -1,0 +1,39 @@
+#ifndef LEXXHARD_MICROROS_PUBLISHERS_H_
+#define LEXXHARD_MICROROS_PUBLISHERS_H_
+
+#include <rcl/rcl.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/*
+ * Publishers of the UART6 session (unit h): one to one port of the rosserial publishers of the MainBoard.
+ *
+ * init creates every publisher of kind PUB of microros_entities.h in table order with the reliable default
+ * QoS and prepares the static message objects. It returns 0 or the first rcl_ret_t that is not RCL_RET_OK.
+ * poll runs one pass of all publisher poll functions in the order of the old rosserial run loop. Both are
+ * called from the UART6 session thread only.
+ */
+int lexxhard_microros_publishers_init(rcl_node_t * node);
+void lexxhard_microros_publishers_poll(void);
+
+/* Consecutive publish failures after which the session is restarted; publishes are dropped from there on. */
+#define LEXXHARD_MICROROS_PUBLISH_FAILURE_LIMIT 3
+
+/*
+ * fini destroys every publisher with the node (also after a failed init) and resets the module state
+ * (publisher array, failure counter) so that a following init starts from zero. The node is still valid.
+ * consecutive_failures returns the number of publishes in a row that returned an error (a success clears it).
+ */
+void lexxhard_microros_publishers_fini(rcl_node_t * node);
+unsigned lexxhard_microros_publishers_consecutive_failures(void);
+
+/* Sets the direction text of the pgv message (called by the pgv_dir subscriber, same thread as poll). */
+void lexxhard_microros_pgv_set_direction(const char * text);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* LEXXHARD_MICROROS_PUBLISHERS_H_ */

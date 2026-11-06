@@ -1,0 +1,112 @@
+#include <zephyr/dt-bindings/led/led.h>
+
+/*
+ * Sensor nodes of the lexxpluss_mb02 board (5 MaxBotix MB1604 and the ADIS16470 on spi5)
+ * for the in-house drivers of spike_fw/modules/lexxpluss_drivers. The label properties are
+ * kept because the firmware looks the devices up by name with device_get_binding();
+ * dr-gpios replaces the hard-coded GPIOF pin 2 of the 2.6 driver.
+ */
+/ {
+	uss0: mb1604-0 {
+		compatible = "maxbotix,maxbotix";
+		label = "MB1604_0";
+		trig-gpios = <&gpioe 3 GPIO_ACTIVE_HIGH>;
+		echo-gpios = <&gpioe 4 GPIO_ACTIVE_HIGH>;
+		status = "okay";
+	};
+
+	uss1: mb1604-1 {
+		compatible = "maxbotix,maxbotix";
+		label = "MB1604_1";
+		trig-gpios = <&gpiob 7 GPIO_ACTIVE_HIGH>;
+		echo-gpios = <&gpiob 6 GPIO_ACTIVE_HIGH>;
+		status = "okay";
+	};
+
+	uss2: mb1604-2 {
+		compatible = "maxbotix,maxbotix";
+		label = "MB1604_2";
+		trig-gpios = <&gpioi 8 GPIO_ACTIVE_HIGH>;
+		echo-gpios = <&gpioc 13 GPIO_ACTIVE_HIGH>;
+		status = "okay";
+	};
+
+	uss3: mb1604-3 {
+		compatible = "maxbotix,maxbotix";
+		label = "MB1604_3";
+		trig-gpios = <&gpiob 8 GPIO_ACTIVE_HIGH>;
+		echo-gpios = <&gpiob 9 GPIO_ACTIVE_HIGH>;
+		status = "okay";
+	};
+
+	uss4: mb1604-4 {
+		compatible = "maxbotix,maxbotix";
+		label = "MB1604_4";
+		trig-gpios = <&gpioh 8 GPIO_ACTIVE_HIGH>;
+		echo-gpios = <&gpioh 7 GPIO_ACTIVE_HIGH>;
+		status = "okay";
+	};
+};
+
+&spi5 {
+	adis16470@0 {
+		compatible = "adi,adis16470";
+		reg = <0>;
+		spi-max-frequency = <2000000>;
+		label = "ADIS16470";
+		dr-gpios = <&gpiof 2 GPIO_ACTIVE_HIGH>;
+	};
+};
+
+/* WS2812 strips (upstream worldsemi,ws2812-spi), values from the 2.6 board dts; GRB wire order. */
+&spi4 {
+	led_strip0: ws2812@0 {
+		compatible = "worldsemi,ws2812-spi";
+		label = "WS2812_0";
+		reg = <0>;
+		spi-max-frequency = <8000000>;
+		chain-length = <36>;
+		spi-one-frame = <0x7c>;
+		spi-zero-frame = <0x60>;
+		color-mapping = <LED_COLOR_ID_GREEN LED_COLOR_ID_RED LED_COLOR_ID_BLUE>;
+	};
+};
+
+&spi1 {
+	led_strip1: ws2812@1 {
+		compatible = "worldsemi,ws2812-spi";
+		label = "WS2812_1";
+		reg = <1>;
+		spi-max-frequency = <8000000>;
+		chain-length = <36>;
+		spi-one-frame = <0x7c>;
+		spi-zero-frame = <0x60>;
+		color-mapping = <LED_COLOR_ID_GREEN LED_COLOR_ID_RED LED_COLOR_ID_BLUE>;
+	};
+};
+
+&spi6 {
+	led_strip2: ws2812@2 {
+		compatible = "worldsemi,ws2812-spi";
+		label = "WS2812_2";
+		reg = <2>;
+		spi-max-frequency = <8000000>;
+		chain-length = <25>;
+		spi-one-frame = <0x7c>;
+		spi-zero-frame = <0x60>;
+		color-mapping = <LED_COLOR_ID_GREEN LED_COLOR_ID_RED LED_COLOR_ID_BLUE>;
+	};
+};
+
+&spi2 {
+	led_strip3: ws2812@3 {
+		compatible = "worldsemi,ws2812-spi";
+		label = "WS2812_3";
+		reg = <3>;
+		spi-max-frequency = <8000000>;
+		chain-length = <25>;
+		spi-one-frame = <0x7c>;
+		spi-zero-frame = <0x60>;
+		color-mapping = <LED_COLOR_ID_GREEN LED_COLOR_ID_RED LED_COLOR_ID_BLUE>;
+	};
+};
