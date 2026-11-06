@@ -225,6 +225,12 @@ PY
   local ret=0
   u12_checks "$unit" "$ev" "$b" "$m" | tee -a "$ev/result.txt"
   [ "${PIPESTATUS[0]}" -eq 0 ] || ret=1
+  if [ "$unit" = f ] && [ "$ret" -eq 0 ]; then
+    mkdir -p "$U12_WT/out"
+    cp "$b/zephyr/zephyr.signed.bin" "$b/zephyr/zephyr.signed.confirmed.bin" "$U12_WT/out/" || ret=1
+    echo "IMAGES out/zephyr.signed.bin md5 $(md5sum "$U12_WT/out/zephyr.signed.bin" | cut -d' ' -f1)" \
+      "out/zephyr.signed.confirmed.bin md5 $(md5sum "$U12_WT/out/zephyr.signed.confirmed.bin" | cut -d' ' -f1)"
+  fi
   echo "evidence dir: $ev"
   return $ret
 }

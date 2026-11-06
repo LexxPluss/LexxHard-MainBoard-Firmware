@@ -2,10 +2,24 @@
 
 This branch is special: it carries its own build recipe, so another PC can build the same spike images.
 
-## Prerequisites
+## Usage
 
-A fresh `git clone` of this branch needs only docker and network access to github.com and Docker Hub. The build
-scripts call `setup_workspace.sh` automatically when the workspace or the docker image is missing.
+Clone this branch (it must exist on that remote; it is not pushed yet), then run from the worktree root:
+
+    git clone --branch feat/zephyr-4.1-microros-spike <repo> <dir>
+    cd <dir>
+    make setup
+    make firmware
+
+Both commands are run by the user and use docker (network access to github.com and Docker Hub is needed).
+`make setup` runs `spike_tools/build/setup_workspace.sh`; `make firmware` runs `spike_tools/build/u12f_build.sh`.
+Outputs: `out/zephyr.signed.bin` and `out/zephyr.signed.confirmed.bin` (the log prints an `IMAGES` line with their
+md5), and the evidence dir `${SPIKE_LOG_DIR:-$HOME/log}/zephyr4_u12_f_<stamp>/`. The other Makefile targets are
+mainline ones and are not usable on this branch.
+
+## Disk and time
+
+Not measured yet (disk use of the workspace and docker image, and build time).
 
 ## Scripts
 

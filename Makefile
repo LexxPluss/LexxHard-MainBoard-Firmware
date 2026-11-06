@@ -45,12 +45,12 @@ distclean: clean
 build: docker-compose.yml Dockerfile
 	docker compose build
 
+# This branch is the Zephyr 4.1 + micro-ROS spike: setup and firmware are replaced by the spike scripts.
+# The other targets (firmware_tug, firmware_interlock, bootloader, *_initial, all) are the mainline ones
+# and are not usable on this branch.
 .PHONY: setup
 setup:
-	$(RUNNER) west init -l lexxpluss_apps
-	$(RUNNER) west update
-	$(RUNNER) west config --global zephyr.base-prefer configfile
-	mkdir -p out
+	spike_tools/build/setup_workspace.sh
 
 .PHONY: update
 update:
@@ -62,10 +62,8 @@ bootloader:
 	mv build-mcuboot/zephyr/zephyr.bin out/zephyr.bin
 
 .PHONY: firmware
-firmware: 
-	$(RUNNER) bash -c "west zephyr-export && west build -b lexxpluss_mb02 lexxpluss_apps -- -DVERSION=$(VERSION)"
-	mv build/zephyr/zephyr.signed.bin out/zephyr.signed.bin
-	mv build/zephyr/zephyr.signed.confirmed.bin out/zephyr.signed.confirmed.bin
+firmware:
+	spike_tools/build/u12f_build.sh
 
 .PHONY: firmware_tug
 firmware_tug: 
