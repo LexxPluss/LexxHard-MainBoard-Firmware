@@ -19,6 +19,13 @@ if(DEFINED FW_UNIT AND FW_UNIT MATCHES "^[a-h]$")
             list(APPEND EXTRA_DTC_OVERLAY_FILE ${CMAKE_CURRENT_LIST_DIR}/boards/u9g_measure_flash_region.overlay)
         endif()
     endif()
+    # Unit h only. A CMake cache variable named CONFIG_* is merged by Zephyr after all
+    # EXTRA_CONF_FILE files, so it overrides the shared nano conf (CONFIG_MICROROS_NODES="1");
+    # an EXTRA_CONF_FILE fragment appended here would be merged before the command-line ones.
+    # Unit g is unchanged. The Kconfig symbol is a string, hence the quoted value.
+    if(FW_UNIT STREQUAL "h")
+        set(CONFIG_MICROROS_NODES "\"2\"" CACHE STRING "Unit h creates two rcl nodes (one per session)" FORCE)
+    endif()
 endif()
 find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 project(spike_fw)
