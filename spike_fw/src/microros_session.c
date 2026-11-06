@@ -11,6 +11,7 @@
 #include <rmw_microros/rmw_microros.h>
 
 #include "microros_publishers.h"
+#include "microros_services.h"
 #include "microros_session.h"
 #include "microros_subscribers.h"
 #include "microros_transports.h"
@@ -20,7 +21,7 @@
 /* compile-time entity counts from the table */
 #define EXPECTED_PUB 20
 #define EXPECTED_SUB 12
-#define EXPECTED_SRV 0
+#define EXPECTED_SRV 3
 
 /* simple counting: each include contributes 1 per matching entry */
 #define MICROROS_KIND_PUB 0
@@ -95,6 +96,19 @@ static void run_session(lexxhard_port_t * port, const char * node_name)
 		for (;;) {
 			lexxhard_microros_subscribers_spin();
 			lexxhard_microros_publishers_poll();
+			k_usleep(1);
+		}
+	}
+
+	if (port == &lexxhard_port_uart2) {
+		const int services_rc = lexxhard_microros_services_init(&node, &support.context);
+		if (services_rc != 0) {
+			printf("Failed to create the services: %d. Aborting.\n", services_rc);
+			for (;;) {}
+		}
+
+		for (;;) {
+			lexxhard_microros_services_spin();
 			k_usleep(1);
 		}
 	}

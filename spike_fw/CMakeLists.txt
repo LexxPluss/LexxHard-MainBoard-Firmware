@@ -82,7 +82,7 @@ if(FW_UNIT STREQUAL "g")
     target_sources(app PRIVATE src/microros_types.c)
 endif()
 fw_unit_sources(g src/microros_transport_uart.c)
-fw_unit_sources(h src/microros_session.c src/microros_publishers.cpp src/microros_subscribers.cpp
+fw_unit_sources(h src/microros_session.c src/microros_publishers.cpp src/microros_subscribers.cpp src/microros_services.cpp
                   src/microros_board_store.cpp)
 
 fw_unit_defines(c CAN INTERLOCK)

@@ -39,3 +39,6 @@ MICROROS_ENTITY(SUB, "/control/request_lockdown", std_msgs, Bool, UART6, RELIABL
 MICROROS_ENTITY(SUB, "/lexxhard/setup", std_msgs, String, UART6, RELIABLE)
 MICROROS_ENTITY(SUB, "/lexxhard/mainboard_messenger_heartbeat", std_msgs, Bool, UART6, RELIABLE)
 MICROROS_ENTITY(SUB, "/control/towing_unit_power_on", std_msgs, UInt8, UART6, RELIABLE)
+MICROROS_ENTITY(SRV, "/body_control/linear_actuator_location", lexxauto_msgs, LinearActuatorLocation, UART2, RELIABLE)
+MICROROS_ENTITY(SRV, "/body_control/init_linear_actuator", lexxauto_msgs, InitLinearActuator, UART2, RELIABLE)
+MICROROS_ENTITY(SRV, "/control/auto_charge_request/enable", std_srvs, SetBool, UART2, RELIABLE)
