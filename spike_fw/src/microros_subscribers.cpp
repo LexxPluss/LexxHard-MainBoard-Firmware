@@ -343,6 +343,7 @@ extern "C" int lexxhard_microros_subscribers_init(rcl_node_t *node, rcl_context_
     using namespace lexxhard::microros_subscribers;
 
     init_slots();
+    wait_set = rcl_get_zero_initialized_wait_set();
 
     rcl_ret_t rc{RCL_RET_OK};
     std::size_t next{0};
@@ -390,4 +391,19 @@ extern "C" void lexxhard_microros_subscribers_spin(void)
         }
     }
     static_cast<void>(rc);
+}
+
+extern "C" void lexxhard_microros_subscribers_fini(rcl_node_t *node)
+{
+    using namespace lexxhard::microros_subscribers;
+
+    rcl_node_t &node_ref{*node};
+    const rcl_ret_t wait_set_rc = rcl_wait_set_fini(&wait_set);
+    static_cast<void>(wait_set_rc);
+    wait_set = rcl_get_zero_initialized_wait_set();
+    for (auto &subscription : subscriptions) {
+        const rcl_ret_t rc = rcl_subscription_fini(&subscription, &node_ref);
+        static_cast<void>(rc);
+        subscription = rcl_get_zero_initialized_subscription();
+    }
 }

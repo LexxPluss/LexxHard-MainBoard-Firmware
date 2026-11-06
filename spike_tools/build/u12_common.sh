@@ -95,7 +95,7 @@ u12_checks() {  # u12_checks <unit> <evidence-dir> <build-dir> <module-dir>; pri
     b)  "$U12_HERE/u12_check_entities.sh" "$U12_WT" pub || rc=1 ;;
     c)  "$U12_HERE/u12_check_entities.sh" "$U12_WT" pub,sub || rc=1 ;;
     d)  "$U12_HERE/u12_check_entities.sh" "$U12_WT" all || rc=1 ;;
-    e|f)  # E6: real slot size in the built dts, signed image, margin
+    e|f|g)  # E6: real slot size in the built dts, signed image, margin
       local reg slot0 slot1 signed
       reg=$(awk '/partition@40000/{f=1} f&&/reg = </{print; exit}' "$b/zephyr/zephyr.dts")
       slot0=$(echo "$reg" | sed -n 's/.*reg = <[[:space:]]*0x40000[[:space:]]*\(0x[0-9a-fA-F]*\).*/\1/p')
@@ -104,7 +104,7 @@ u12_checks() {  # u12_checks <unit> <evidence-dir> <build-dir> <module-dir>; pri
       signed=$(stat -c %s "$b/zephyr/zephyr.signed.bin" 2>/dev/null || echo 0)
       echo "CHECK E6 slot0_size=${slot0:-unknown} slot1_size=${slot1:-unknown} expected=0x40000 signed_image_bytes=$signed margin_bytes_before_trailer=$((U12_SLOT_BYTES - signed))"
       [ "${slot0:-}" = "0x40000" ] && [ "${slot1:-}" = "0x40000" ] && [ "$signed" -gt 0 ] && [ "$signed" -le "$U12_SLOT_BYTES" ] || { echo "FAIL E6"; rc=1; }
-      if [ "$unit" = f ]; then
+      if [ "$unit" = f ] || [ "$unit" = g ]; then
         # E8: pools of the built rmw config.h (guards against a cached libmicroros.a built with other values)
         local cfg v_nodes v_sess v_srv v_sub v_pub
         cfg=$(find "$m" -path '*rmw_microxrcedds_c/config.h' 2>/dev/null | head -n 1)
@@ -121,6 +121,22 @@ u12_checks() {  # u12_checks <unit> <evidence-dir> <build-dir> <module-dir>; pri
         echo "CHECK E9 update_image_bytes=$signed confirmed_image_bytes=$conf expected_confirmed=$U12_SLOT_BYTES update_md5=$(md5sum "$b/zephyr/zephyr.signed.bin" | cut -d' ' -f1) confirmed_md5=$(md5sum "$b/zephyr/zephyr.signed.confirmed.bin" | cut -d' ' -f1)"
         [ "$conf" -eq "$U12_SLOT_BYTES" ] || { echo "FAIL E9"; rc=1; }
         "$U12_HERE/u12_check_entities.sh" "$U12_WT" all || rc=1
+      fi
+      if [ "$unit" = g ]; then
+        # E10: no empty busy loop in the session code (every infinite loop sleeps or blocks)
+        local sess=$U12_WT/spike_fw/src/microros_session.c busy rccheck
+        busy=$(grep -cE 'for \(;;\) \{\}' "$sess")
+        rccheck=$(grep -c 'RCCHECK(' "$sess")
+        echo "CHECK E10 busy_loops=$busy rccheck_uses=$rccheck expected=0"
+        [ "$busy" -eq 0 ] && [ "$rccheck" -eq 0 ] || { echo "FAIL E10"; rc=1; }
+        # E11: fini functions exist for publishers, subscribers and services and the session calls them
+        local calls defs
+        calls=$(grep -cE 'lexxhard_microros_(publishers|subscribers|services)_fini\(' "$sess")
+        defs=$(grep -hcE '^extern "C" void lexxhard_microros_(publishers|subscribers|services)_fini\(' \
+          "$U12_WT/spike_fw/src/microros_publishers.cpp" "$U12_WT/spike_fw/src/microros_subscribers.cpp" \
+          "$U12_WT/spike_fw/src/microros_services.cpp" | awk '{n+=$1} END{print n+0}')
+        echo "CHECK E11 fini_calls=$calls fini_defs=$defs expected_calls=3 expected_defs=3"
+        [ "$calls" -eq 3 ] && [ "$defs" -eq 3 ] || { echo "FAIL E11"; rc=1; }
       fi ;;
   esac
   return $rc
@@ -133,7 +149,7 @@ u12_worker() {  # u12_worker <unit> <self>
   local ev=${SPIKE_LOG_DIR:-$HOME/log}/zephyr4_u12_${unit}_${U12_STAMP}
   out=${U12_LOG%.log}.build.txt
   echo "u12 worker: unit=$unit stamp=$U12_STAMP $(date -Is)"
-  case "$unit" in a1|a2|b|c|d|e|f) ;; *) echo "BUILD_RC=1"; echo "FAIL unknown unit: $unit"; return 1 ;; esac
+  case "$unit" in a1|a2|b|c|d|e|f|g) ;; *) echo "BUILD_RC=1"; echo "FAIL unknown unit: $unit"; return 1 ;; esac
   docker image inspect "$U12_IMG" >/dev/null 2>&1 || { echo "BUILD_RC=1"; echo "FAIL image absent: $U12_IMG"; return 1; }
   [ -d "$U12_WT/spike_fw" ] || { echo "BUILD_RC=1"; echo "FAIL spike_fw absent"; return 1; }
   [ -f "$U12_WT/$U12_OVERLAY" ] && [ -f "$U12_WT/$U12_FRAGMENT" ] || { echo "BUILD_RC=1"; echo "FAIL overlay or fragment absent"; return 1; }
@@ -141,7 +157,7 @@ u12_worker() {  # u12_worker <unit> <self>
   [ -f "$U12_HERE/u12_entities.txt" ] || { echo "BUILD_RC=1"; echo "FAIL entity list absent"; return 1; }
   if grep -q "DISABLE_TYPE_DESCRIPTION" "$mk"; then echo "BUILD_RC=1"; echo "FAIL libmicroros.mk is already patched (restore it first)"; return 1; fi
   confs="/workdir/$U12_OVERLAY;/workdir/$U12_FRAGMENT"
-  case "$unit" in e|f) cmake_extra="-DSPIKE_REAL_SLOT=ON" ;; esac
+  case "$unit" in e|f|g) cmake_extra="-DSPIKE_REAL_SLOT=ON" ;; esac
 
   mkdir -p "$ev"
   cp "$mk" "$ev/libmicroros.mk.orig"
@@ -225,7 +241,7 @@ PY
   local ret=0
   u12_checks "$unit" "$ev" "$b" "$m" | tee -a "$ev/result.txt"
   [ "${PIPESTATUS[0]}" -eq 0 ] || ret=1
-  if [ "$unit" = f ] && [ "$ret" -eq 0 ]; then
+  if { [ "$unit" = f ] || [ "$unit" = g ]; } && [ "$ret" -eq 0 ]; then
     mkdir -p "$U12_WT/out"
     cp "$b/zephyr/zephyr.signed.bin" "$b/zephyr/zephyr.signed.confirmed.bin" "$U12_WT/out/" || ret=1
     echo "IMAGES out/zephyr.signed.bin md5 $(md5sum "$U12_WT/out/zephyr.signed.bin" | cut -d' ' -f1)" \

@@ -113,11 +113,23 @@ PUB_ID(id_diagnostics, "/diagnostics");
 
 rcl_publisher_t publishers[num_pub];
 
-// The old rosserial publish ignored failures; so does this.
+// Consecutive publish failures (any success clears it); read by the session thread through
+// lexxhard_microros_publishers_consecutive_failures. Written by the UART6 session thread only.
+unsigned consecutive_failures{0};
+
+// The old rosserial publish ignored failures; here a failure only feeds the counter above, the
+// message is dropped as before.
 void publish(std::size_t id, const void *message)
 {
+    // A failing reliable publish blocks up to 1000 ms: once the limit is reached the message is dropped
+    // without calling rcl_publish (the session thread restarts the session).
+    if (consecutive_failures >= LEXXHARD_MICROROS_PUBLISH_FAILURE_LIMIT)
+        return;
     const rcl_ret_t rc = rcl_publish(&publishers[id], message, nullptr);
-    static_cast<void>(rc);
+    if (rc == RCL_RET_OK)
+        consecutive_failures = 0;
+    else
+        ++consecutive_failures;
 }
 
 // ---- helpers for the C sequences and strings ----
@@ -594,6 +606,7 @@ extern "C" int lexxhard_microros_publishers_init(rcl_node_t *node)
 {
     using namespace lexxhard::microros_publishers;
 
+    consecutive_failures = 0;
     init_actuator();
     init_bmu();
     init_board();
@@ -643,4 +656,22 @@ extern "C" void lexxhard_microros_pgv_set_direction(const char *text)
     using namespace lexxhard::microros_publishers;
 
     snprintf(pgv_direction, sizeof pgv_direction, "%s", text);
+}
+
+extern "C" void lexxhard_microros_publishers_fini(rcl_node_t *node)
+{
+    using namespace lexxhard::microros_publishers;
+
+    rcl_node_t &node_ref{*node};
+    for (auto &publisher : publishers) {
+        const rcl_ret_t rc = rcl_publisher_fini(&publisher, &node_ref);
+        static_cast<void>(rc);
+        publisher = rcl_get_zero_initialized_publisher();
+    }
+    consecutive_failures = 0;
+}
+
+extern "C" unsigned lexxhard_microros_publishers_consecutive_failures(void)
+{
+    return lexxhard::microros_publishers::consecutive_failures;
 }

@@ -96,6 +96,13 @@ fw_unit_sources(g src/microros_transport_uart.c)
 fw_unit_sources(h src/microros_session.c src/microros_publishers.cpp src/microros_subscribers.cpp src/microros_services.cpp
                   src/microros_board_store.cpp)
 
+# Unit h reads the uxrSession of an rcl context for the per-session ping: the private rmw header
+# (rmw_microros_internal/types.h) needs this include directory, for this source only.
+if(FW_UNIT STREQUAL "h")
+    set_source_files_properties(src/microros_session.c PROPERTIES INCLUDE_DIRECTORIES
+        ${CMAKE_CURRENT_LIST_DIR}/../micro_ros_zephyr_module/modules/libmicroros/micro_ros_src/src/rmw-microxrcedds/rmw_microxrcedds_c/src)
+endif()
+
 fw_unit_defines(c CAN INTERLOCK)
 fw_unit_defines(d ACTUATOR ADC PGV TOWING MISC)
 fw_unit_defines(e UPDATER SDLOG LOG RUNAWAY TOF)

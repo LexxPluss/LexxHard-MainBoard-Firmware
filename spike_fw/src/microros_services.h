@@ -20,6 +20,12 @@ extern "C" {
 int lexxhard_microros_services_init(rcl_node_t * node, rcl_context_t * context);
 void lexxhard_microros_services_spin(void);
 
+/*
+ * fini destroys the wait set and every service with the node (also after a failed init) and resets the
+ * module arrays so that a following init starts from zero. The node is still valid.
+ */
+void lexxhard_microros_services_fini(rcl_node_t * node);
+
 #ifdef __cplusplus
 }
 #endif

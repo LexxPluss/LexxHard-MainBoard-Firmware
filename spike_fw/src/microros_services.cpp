@@ -261,6 +261,7 @@ extern "C" int lexxhard_microros_services_init(rcl_node_t *node, rcl_context_t *
     using namespace lexxhard::microros_services;
 
     init_slots();
+    wait_set = rcl_get_zero_initialized_wait_set();
 
     rcl_ret_t rc{RCL_RET_OK};
     std::size_t next{0};
@@ -309,4 +310,19 @@ extern "C" void lexxhard_microros_services_spin(void)
         }
     }
     static_cast<void>(rc);
+}
+
+extern "C" void lexxhard_microros_services_fini(rcl_node_t *node)
+{
+    using namespace lexxhard::microros_services;
+
+    rcl_node_t &node_ref{*node};
+    const rcl_ret_t wait_set_rc = rcl_wait_set_fini(&wait_set);
+    static_cast<void>(wait_set_rc);
+    wait_set = rcl_get_zero_initialized_wait_set();
+    for (auto &service : services) {
+        const rcl_ret_t rc = rcl_service_fini(&service, &node_ref);
+        static_cast<void>(rc);
+        service = rcl_get_zero_initialized_service();
+    }
 }
