@@ -4,9 +4,8 @@ This branch is special: it carries its own build recipe, so another PC can build
 
 ## Prerequisites
 
-- Docker image `zephyrprojectrtos/zephyr-build:v0.27.4` is present.
-- The west workspace is populated in this worktree: `zephyr`, `modules`, the `bootloader/mcuboot` key,
-  and `micro_ros_zephyr_module/modules/libmicroros` with `micro_ros_src`.
+A fresh `git clone` of this branch needs only docker and network access to github.com and Docker Hub. The build
+scripts call `setup_workspace.sh` automatically when the workspace or the docker image is missing.
 
 ## Scripts
 
@@ -17,6 +16,28 @@ This branch is special: it carries its own build recipe, so another PC can build
 | `u12f_build.sh` | on-board image (FW_UNIT=h, real slot, NODES=2); outputs `zephyr.signed.bin` and `zephyr.signed.confirmed.bin` in `${SPIKE_LOG_DIR:-$HOME/log}/zephyr4_u12_f_<stamp>/` |
 
 Support files: `u10_common.sh`, `u12_common.sh`, `u12_check_entities.sh`, `u12_entities.txt`, `loop_run.sh`.
+
+## Setting up a fresh workspace
+
+Nothing to do by hand: `u10z_build.sh` and every `u12*_build.sh` check `.west`, `zephyr`,
+`bootloader/mcuboot/root-rsa-2048.pem`, `micro_ros_src/src` and the docker image first. If any is missing they run
+`setup_workspace.sh`, print its three lines, and stop with its exit code when it fails. When all are present
+nothing extra runs, so repeated builds are unchanged.
+
+`setup_workspace.sh` can still be run alone:
+
+    ! <abs path of the worktree>/spike_tools/build/setup_workspace.sh
+
+It is idempotent and never deletes anything: it pulls the docker image `zephyrprojectrtos/zephyr-build:v0.27.4` when
+absent, skips the west step (log `west workspace present, skipped`) when `.west` exists, and otherwise runs
+`west init -l lexxpluss_apps`, `west update`, `west config --global zephyr.base-prefer configfile` and `mkdir -p out`
+in the image. It fetches `micro_ros_src/src` with the module's own make rule only when it is absent (and refuses when
+`micro_ros_src` exists without `src`). The log is `${SPIKE_LOG_DIR:-$HOME/log}/spike_setup_<stamp>.log`; its end lists
+the HEAD and remote URL of `zephyr`, `micro_ros_zephyr_module`, `ros_msgs` and every repository in `micro_ros_src/src`.
+
+Note: the manifest follows floating branches (`ros_msgs` main, `micro_ros_zephyr_module` jazzy, and jazzy/ros2 for the
+ROS 2 sources). If they moved since the earlier builds, the result and the image md5 can differ; compare the
+provenance lines in the log with the earlier evidence.
 
 ## Run
 

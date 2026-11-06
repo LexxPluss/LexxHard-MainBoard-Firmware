@@ -16,6 +16,21 @@ U12_FRAGMENT=spike_fw/variants/u10e_combined.conf
 U12_SESSIONS_FILE=spike_fw/variants/u12_sessions.txt   # content: the number for RMW_UXRCE_MAX_SESSIONS (repository-driven)
 U12_SLOT_BYTES=262144
 
+u12_ensure_workspace() {
+  # Fresh clone: run setup_workspace.sh first when anything the build assumes is missing; no-op otherwise.
+  local m=$U12_WT/micro_ros_zephyr_module/modules/libmicroros
+  if [ -e "$U12_WT/.west" ] && [ -e "$U12_WT/zephyr" ] && [ -f "$U12_WT/bootloader/mcuboot/root-rsa-2048.pem" ] \
+     && [ -d "$m/micro_ros_src/src" ] && docker image inspect "$U12_IMG" >/dev/null 2>&1; then
+    return 0
+  fi
+  echo "workspace incomplete, running setup_workspace.sh"
+  local out rc
+  out=$("$U12_HERE/setup_workspace.sh")
+  rc=$?
+  echo "$out"
+  return $rc
+}
+
 u12_run() {
   local unit=$1 self
   self=$(readlink -f "${BASH_SOURCE[1]}")
@@ -24,6 +39,7 @@ u12_run() {
     return $?
   fi
   local stamp log rc
+  u12_ensure_workspace || return $?
   stamp=$(date +%Y%m%d_%H%M%S)
   log=${SPIKE_LOG_DIR:-$HOME/log}/zephyr4_u12_${unit}_${stamp}.log
   mkdir -p ${SPIKE_LOG_DIR:-$HOME/log}
