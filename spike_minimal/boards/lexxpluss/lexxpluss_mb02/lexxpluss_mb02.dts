@@ -79,7 +79,7 @@
 &usart6 {
 	pinctrl-0 = <&usart6_tx_pg14 &usart6_rx_pg9 &usart6_cts_pg13 &usart6_rts_pg12>;
 	pinctrl-names = "default";
-	current-speed = <115200>;
+	current-speed = <921600>;
 	hw-flow-control;
 	status = "okay";
 };
