@@ -637,3 +637,10 @@ extern "C" void lexxhard_microros_publishers_poll(void)
     poll_uss();
     poll_towing_unit();
 }
+
+extern "C" void lexxhard_microros_pgv_set_direction(const char *text)
+{
+    using namespace lexxhard::microros_publishers;
+
+    snprintf(pgv_direction, sizeof pgv_direction, "%s", text);
+}

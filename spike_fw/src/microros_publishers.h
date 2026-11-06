@@ -18,6 +18,9 @@ extern "C" {
 int lexxhard_microros_publishers_init(rcl_node_t * node);
 void lexxhard_microros_publishers_poll(void);
 
+/* Sets the direction text of the pgv message (called by the pgv_dir subscriber, same thread as poll). */
+void lexxhard_microros_pgv_set_direction(const char * text);
+
 #ifdef __cplusplus
 }
 #endif

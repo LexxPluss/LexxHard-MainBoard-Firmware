@@ -12,13 +12,14 @@
 
 #include "microros_publishers.h"
 #include "microros_session.h"
+#include "microros_subscribers.h"
 #include "microros_transports.h"
 
 #define RCCHECK(fn) { rcl_ret_t temp_rc = fn; if (temp_rc != RCL_RET_OK) { printf("Failed status on line %d: %d. Aborting.\n", __LINE__, (int)temp_rc); for (;;) {}; } }
 
 /* compile-time entity counts from the table */
 #define EXPECTED_PUB 20
-#define EXPECTED_SUB 0
+#define EXPECTED_SUB 12
 #define EXPECTED_SRV 0
 
 /* simple counting: each include contributes 1 per matching entry */
@@ -85,7 +86,14 @@ static void run_session(lexxhard_port_t * port, const char * node_name)
 			for (;;) {}
 		}
 
+		const int subscribers_rc = lexxhard_microros_subscribers_init(&node, &support.context);
+		if (subscribers_rc != 0) {
+			printf("Failed to create the subscribers: %d. Aborting.\n", subscribers_rc);
+			for (;;) {}
+		}
+
 		for (;;) {
+			lexxhard_microros_subscribers_spin();
 			lexxhard_microros_publishers_poll();
 			k_usleep(1);
 		}
