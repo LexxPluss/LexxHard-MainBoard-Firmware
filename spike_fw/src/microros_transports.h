@@ -37,6 +37,28 @@ typedef struct {
 #define LEXXHARD_MICRO_ROS_FRAMING_REQUIRED true
 volatile static lexxhard_transport_params_t lexxhard_default_params = {.fd = 1};
 
+#ifdef FW_HAS_MICROROS_REAL
+#include <zephyr/sys/ring_buffer.h>
+
+#define LEXXHARD_PORT_RING_SIZE 2048
+
+/* One micro-ROS serial port: device, own ring buffers and the input ring object. */
+typedef struct {
+    const struct device * dev;
+    char in_buffer[LEXXHARD_PORT_RING_SIZE];
+    char out_buffer[LEXXHARD_PORT_RING_SIZE];
+    struct ring_buf in_ringbuf;
+} lexxhard_port_t;
+
+extern lexxhard_port_t lexxhard_port_uart6;
+extern lexxhard_port_t lexxhard_port_uart2;
+
+bool lexxhard_port_open(struct uxrCustomTransport * transport);
+bool lexxhard_port_close(struct uxrCustomTransport * transport);
+size_t lexxhard_port_write(struct uxrCustomTransport * transport, const uint8_t * buf, size_t len, uint8_t * err);
+size_t lexxhard_port_read(struct uxrCustomTransport * transport, uint8_t * buf, size_t len, int timeout, uint8_t * err);
+#endif /* FW_HAS_MICROROS_REAL */
+
 bool lexxhard_transport_open(struct uxrCustomTransport * transport);
 bool lexxhard_transport_close(struct uxrCustomTransport * transport);
 size_t lexxhard_transport_write(struct uxrCustomTransport* transport, const uint8_t * buf, size_t len, uint8_t * err);

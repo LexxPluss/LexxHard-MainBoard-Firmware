@@ -64,7 +64,9 @@
 #if FW_HAS_TOWING
 #include "towing_unit_controller.hpp"
 #endif
-#if FW_HAS_MICROROS
+#if defined(FW_HAS_MICROROS_REAL)
+#include "microros_session.h"
+#elif FW_HAS_MICROROS
 #include "microros_types.h"
 #endif
 
@@ -109,7 +111,12 @@ K_THREAD_STACK_DEFINE(uss_controller_stack, 2048);
 #if FW_HAS_TOWING
 K_THREAD_STACK_DEFINE(towing_unit_controller_stack, 2048);
 #endif
-#if FW_HAS_MICROROS
+#if defined(FW_HAS_MICROROS_REAL)
+K_THREAD_STACK_DEFINE(microros_uart6_stack, 25000);
+struct k_thread microros_uart6_thread;
+K_THREAD_STACK_DEFINE(microros_uart2_stack, 25000);
+struct k_thread microros_uart2_thread;
+#elif FW_HAS_MICROROS
 K_THREAD_STACK_DEFINE(microros_stack, 25000);
 struct k_thread microros_thread;
 #endif
@@ -227,7 +234,14 @@ int main()
     RUN(runaway_detector, 4);
 #endif
 
-#if FW_HAS_MICROROS
+#if defined(FW_HAS_MICROROS_REAL)
+    k_thread_create(&microros_uart6_thread, microros_uart6_stack, K_THREAD_STACK_SIZEOF(microros_uart6_stack),
+                    [](void *, void *, void *) { lexxhard_microros_session_uart6(); },
+                    nullptr, nullptr, nullptr, 5, K_FP_REGS, K_MSEC(2000));
+    k_thread_create(&microros_uart2_thread, microros_uart2_stack, K_THREAD_STACK_SIZEOF(microros_uart2_stack),
+                    [](void *, void *, void *) { lexxhard_microros_session_uart2(); },
+                    nullptr, nullptr, nullptr, 6, K_FP_REGS, K_MSEC(2000));
+#elif FW_HAS_MICROROS
     k_thread_create(&microros_thread, microros_stack, K_THREAD_STACK_SIZEOF(microros_stack),
                     [](void *, void *, void *) { lexxhard_microros_run(); },
                     nullptr, nullptr, nullptr, 6, K_FP_REGS, K_MSEC(2000));

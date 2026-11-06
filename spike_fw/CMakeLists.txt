@@ -3,8 +3,8 @@ cmake_minimum_required(VERSION 3.20.0)
 list(APPEND BOARD_ROOT ${CMAKE_CURRENT_LIST_DIR}/../spike_minimal)
 # From unit b on, the in-house driver module is part of the build. The module
 # list must be known before find_package(Zephyr), so the unit index is derived here.
-if(DEFINED FW_UNIT AND FW_UNIT MATCHES "^[a-g]$")
-    string(FIND "abcdefg" "${FW_UNIT}" early_unit_pos)
+if(DEFINED FW_UNIT AND FW_UNIT MATCHES "^[a-h]$")
+    string(FIND "abcdefgh" "${FW_UNIT}" early_unit_pos)
     if(early_unit_pos GREATER 0)
         list(APPEND ZEPHYR_EXTRA_MODULES ${CMAKE_CURRENT_LIST_DIR}/modules/lexxpluss_drivers)
         list(APPEND EXTRA_CONF_FILE ${CMAKE_CURRENT_LIST_DIR}/prj_sensors.conf)
@@ -31,14 +31,14 @@ if(CONFIG_LTO)
     )
 endif()
 
-# FW_UNIT selects the cumulative unit (a..g) up to which sources are compiled.
-if(NOT DEFINED FW_UNIT OR NOT FW_UNIT MATCHES "^[a-g]$")
-    message(FATAL_ERROR "FW_UNIT must be set to a letter a..g (e.g. -DFW_UNIT=a)")
+# FW_UNIT selects the cumulative unit (a..h) up to which sources are compiled.
+if(NOT DEFINED FW_UNIT OR NOT FW_UNIT MATCHES "^[a-h]$")
+    message(FATAL_ERROR "FW_UNIT must be set to a letter a..h (e.g. -DFW_UNIT=a)")
 endif()
 
 # Maps the unit letter to an index (a=1 .. g=7).
 function(fw_unit_index letter out_var)
-    string(FIND "abcdefg" "${letter}" pos)
+    string(FIND "abcdefgh" "${letter}" pos)
     math(EXPR idx "${pos} + 1")
     set(${out_var} ${idx} PARENT_SCOPE)
 endfunction()
@@ -77,13 +77,19 @@ fw_unit_sources(e src/firmware_updater.cpp src/sdlog_controller.cpp
                   src/tof_controller.cpp)
 fw_unit_sources(f src/imu_controller.cpp src/uss_controller.cpp
                   src/led_controller.cpp)
-fw_unit_sources(g src/microros_types.c src/microros_transport_uart.c)
+# The size-spike sample is compiled for unit g only; unit h replaces it by the real session.
+if(FW_UNIT STREQUAL "g")
+    target_sources(app PRIVATE src/microros_types.c)
+endif()
+fw_unit_sources(g src/microros_transport_uart.c)
+fw_unit_sources(h src/microros_session.c)
 
 fw_unit_defines(c CAN INTERLOCK)
 fw_unit_defines(d ACTUATOR ADC PGV TOWING MISC)
 fw_unit_defines(e UPDATER SDLOG LOG RUNAWAY TOF)
 fw_unit_defines(f IMU USS LED)
 fw_unit_defines(g MICROROS)
+fw_unit_defines(h MICROROS_REAL)
 
 if(ENABLE_INTERLOCK)
     add_definitions(-DENABLE_INTERLOCK)

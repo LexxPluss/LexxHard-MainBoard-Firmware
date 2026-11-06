@@ -103,3 +103,81 @@ size_t lexxhard_transport_read(struct uxrCustomTransport* transport, uint8_t* bu
 
     return read;
 }
+
+#ifdef FW_HAS_MICROROS_REAL
+/* --- per-port transports (unit h): each port has its own rings and IRQ callback --- */
+
+lexxhard_port_t lexxhard_port_uart6 = {.dev = DEVICE_DT_GET(DT_NODELABEL(usart6))};
+lexxhard_port_t lexxhard_port_uart2 = {.dev = DEVICE_DT_GET(DT_NODELABEL(usart2))};
+
+/* user_data of the IRQ callback is the port the callback was installed for */
+static void port_irq_callback(const struct device * dev, void * user_data){
+    lexxhard_port_t * port = (lexxhard_port_t *) user_data;
+
+    while (uart_irq_update(dev) && uart_irq_is_pending(dev)) {
+        if (uart_irq_rx_ready(dev)) {
+            char buffer[64];
+            const size_t len = MIN(ring_buf_space_get(&port->in_ringbuf), sizeof(buffer));
+
+            if (len > 0){
+                const int recv_len = uart_fifo_read(dev, buffer, len);
+                if (recv_len > 0){
+                    ring_buf_put(&port->in_ringbuf, buffer, recv_len);
+                }
+            }
+        }
+    }
+}
+
+bool lexxhard_port_open(struct uxrCustomTransport * transport){
+    lexxhard_port_t * port = (lexxhard_port_t *) transport->args;
+
+    if (!device_is_ready(port->dev)) {
+        printk("Serial device not ready\n");
+        return false;
+    }
+
+    ring_buf_init(&port->in_ringbuf, sizeof(port->in_buffer), (uint8_t *) port->in_buffer);
+
+    uart_irq_callback_user_data_set(port->dev, port_irq_callback, port);
+    uart_irq_rx_enable(port->dev);
+
+    return true;
+}
+
+bool lexxhard_port_close(struct uxrCustomTransport * transport){
+    lexxhard_port_t * port = (lexxhard_port_t *) transport->args;
+
+    uart_irq_rx_disable(port->dev);
+    return true;
+}
+
+size_t lexxhard_port_write(struct uxrCustomTransport * transport, const uint8_t * buf, size_t len, uint8_t * err){
+    lexxhard_port_t * port = (lexxhard_port_t *) transport->args;
+
+    for (size_t i = 0; i < len; i++)
+    {
+        uart_poll_out(port->dev, buf[i]);
+    }
+
+    return len;
+}
+
+size_t lexxhard_port_read(struct uxrCustomTransport * transport, uint8_t * buf, size_t len, int timeout, uint8_t * err){
+    lexxhard_port_t * port = (lexxhard_port_t *) transport->args;
+
+    size_t read = 0;
+    int spent_time = 0;
+
+    while(ring_buf_is_empty(&port->in_ringbuf) && spent_time < timeout){
+        usleep(1000);
+        spent_time++;
+    }
+
+    uart_irq_rx_disable(port->dev);
+    read = ring_buf_get(&port->in_ringbuf, buf, len);
+    uart_irq_rx_enable(port->dev);
+
+    return read;
+}
+#endif /* FW_HAS_MICROROS_REAL */
