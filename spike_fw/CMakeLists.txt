@@ -82,7 +82,7 @@ if(FW_UNIT STREQUAL "g")
     target_sources(app PRIVATE src/microros_types.c)
 endif()
 fw_unit_sources(g src/microros_transport_uart.c)
-fw_unit_sources(h src/microros_session.c)
+fw_unit_sources(h src/microros_session.c src/microros_publishers.cpp)
 
 fw_unit_defines(c CAN INTERLOCK)
 fw_unit_defines(d ACTUATOR ADC PGV TOWING MISC)

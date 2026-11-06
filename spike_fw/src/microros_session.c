@@ -10,13 +10,14 @@
 #include <rclc/rclc.h>
 #include <rmw_microros/rmw_microros.h>
 
+#include "microros_publishers.h"
 #include "microros_session.h"
 #include "microros_transports.h"
 
 #define RCCHECK(fn) { rcl_ret_t temp_rc = fn; if (temp_rc != RCL_RET_OK) { printf("Failed status on line %d: %d. Aborting.\n", __LINE__, (int)temp_rc); for (;;) {}; } }
 
 /* compile-time entity counts from the table */
-#define EXPECTED_PUB 0
+#define EXPECTED_PUB 20
 #define EXPECTED_SUB 0
 #define EXPECTED_SRV 0
 
@@ -72,6 +73,23 @@ static void run_session(lexxhard_port_t * port, const char * node_name)
 
 	RCCHECK(rclc_support_init_with_options(&support, 0, NULL, &init_options, &allocator));
 	RCCHECK(rclc_node_init_default(&node, node_name, "", &support));
+
+	if (port == &lexxhard_port_uart6) {
+		/* host-synchronised time for the diagnostics stamp; the result is ignored */
+		const rmw_ret_t sync_rc = rmw_uros_sync_session(1000);
+		(void)sync_rc;
+
+		const int publishers_rc = lexxhard_microros_publishers_init(&node);
+		if (publishers_rc != 0) {
+			printf("Failed to create the publishers: %d. Aborting.\n", publishers_rc);
+			for (;;) {}
+		}
+
+		for (;;) {
+			lexxhard_microros_publishers_poll();
+			k_usleep(1);
+		}
+	}
 
 	for (;;) {
 		k_msleep(100);
