@@ -12,7 +12,7 @@ Clone this branch (it must exist on that remote; it is not pushed yet), then run
     make firmware
 
 Both commands are run by the user and use docker (network access to github.com and Docker Hub is needed).
-`make setup` runs `spike_tools/build/setup_workspace.sh`; `make firmware` runs `spike_tools/build/u12f_build.sh`.
+`make setup` runs `spike_tools/build/setup_workspace.sh`; `make firmware` runs `spike_tools/build/u12g_build.sh` (the f build plus the checks E10 and E11).
 Outputs: `out/zephyr.signed.bin` and `out/zephyr.signed.confirmed.bin` (the log prints an `IMAGES` line with their
 md5), and the evidence dir `${SPIKE_LOG_DIR:-$HOME/log}/zephyr4_u12_f_<stamp>/`. The other Makefile targets are
 mainline ones and are not usable on this branch.
@@ -45,6 +45,7 @@ micro_ros_zephyr_module 87dbe3a).
 | `u10z_build.sh` | unit g baseline (FW_UNIT=g, U10 fragment) |
 | `u12a1_build.sh`, `u12a2_build.sh`, `u12b_build.sh`..`u12e_build.sh` | unit h steps (FW_UNIT=h) plus the unit checks |
 | `u12f_build.sh` | on-board image (FW_UNIT=h, real slot, NODES=2); outputs `zephyr.signed.bin` and `zephyr.signed.confirmed.bin` in `${SPIKE_LOG_DIR:-$HOME/log}/zephyr4_u12_f_<stamp>/` |
+| `u12g_build.sh` | agent wait and reconnect (FW_UNIT=h, real slot, NODES=2): the f build plus the checks E10 (no empty loop) and E11 (fini defined and called); this is what `make firmware` runs; the images go to `out/` and the evidence directory |
 
 Support files: `u10_common.sh`, `u12_common.sh`, `u12_check_entities.sh`, `u12_entities.txt`, `loop_run.sh`.
 

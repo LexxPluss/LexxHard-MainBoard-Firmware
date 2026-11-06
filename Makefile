@@ -63,7 +63,7 @@ bootloader:
 
 .PHONY: firmware
 firmware:
-	spike_tools/build/u12f_build.sh
+	spike_tools/build/u12g_build.sh
 
 .PHONY: firmware_tug
 firmware_tug: 
